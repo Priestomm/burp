@@ -10,8 +10,9 @@ from dataclasses import dataclass, field
 import httpx
 
 SPARQL_ENDPOINT = "https://query.wikidata.org/sparql"
-# Wikimedia asks for a descriptive User-Agent on all API requests.
-USER_AGENT = "mappetito-pipeline/0.1 (https://github.com/OWNER/mappetito)"
+# Wikimedia asks for a descriptive User-Agent with contact info on all API requests.
+# TODO: add the project URL or a contact address before running against the live endpoint.
+USER_AGENT = "mappetito-pipeline/0.1"
 
 # Q746549 = dish, P495 = country of origin, P299 = ISO 3166-1 numeric code,
 # P527 = has part(s), used here as a rough "ingredient" relation.
