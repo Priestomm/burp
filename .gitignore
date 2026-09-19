@@ -1,0 +1,11 @@
+node_modules/
+.svelte-kit/
+build/
+dist/
+.wrangler/
+.dev.vars
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.DS_Store

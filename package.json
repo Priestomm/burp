@@ -1,0 +1,15 @@
+{
+  "name": "mappetito",
+  "private": true,
+  "packageManager": "pnpm@12.4.2",
+  "scripts": {
+    "dev": "pnpm --filter app dev",
+    "build": "pnpm --filter app build",
+    "test": "pnpm --filter app test",
+    "check": "biome check .",
+    "format": "biome format --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.14"
+  }
+}
