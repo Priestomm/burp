@@ -1,0 +1,8 @@
+# Copy to .dev.vars (git-ignored) and fill in. Never commit real values.
+
+# Receipt OCR / vision provider (TODO: not used yet)
+OCR_API_KEY=
+
+# Push notification (Web Push VAPID) keys for expiry alerts (TODO: not used yet)
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=

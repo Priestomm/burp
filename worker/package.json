@@ -1,0 +1,16 @@
+{
+  "name": "worker",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260918.1",
+    "typescript": "~6.0.3",
+    "wrangler": "^4.135.0"
+  }
+}
