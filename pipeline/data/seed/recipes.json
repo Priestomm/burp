@@ -1,15 +1,18 @@
 [
   {
-    "id": "it-pasta-e-ceci", "name": "Pasta and chickpeas", "name_it": "Pasta e ceci", "country_code": "380",
+    "id": "it-pasta-e-ceci",
+    "name": "Pasta and chickpeas",
+    "name_it": "Pasta e ceci",
+    "country_code": "380",
     "ingredients": [
-      {"ingredient_id": "pasta", "quantity": 80, "unit": "g", "is_core": true},
-      {"ingredient_id": "chickpeas", "quantity": 150, "unit": "g", "is_core": true},
-      {"ingredient_id": "olive_oil", "quantity": 2, "unit": "tbsp", "is_core": false},
-      {"ingredient_id": "garlic", "quantity": 1, "unit": "clove", "is_core": false},
-      {"ingredient_id": "rosemary", "quantity": 1, "unit": "sprig", "is_core": false},
-      {"ingredient_id": "tomato_passata", "quantity": 2, "unit": "tbsp", "is_core": false},
-      {"ingredient_id": "salt", "is_core": false},
-      {"ingredient_id": "black_pepper", "is_core": false}
+      { "ingredient_id": "pasta", "quantity": 80, "unit": "g", "is_core": true },
+      { "ingredient_id": "chickpeas", "quantity": 150, "unit": "g", "is_core": true },
+      { "ingredient_id": "olive_oil", "quantity": 2, "unit": "tbsp", "is_core": false },
+      { "ingredient_id": "garlic", "quantity": 1, "unit": "clove", "is_core": false },
+      { "ingredient_id": "rosemary", "quantity": 1, "unit": "sprig", "is_core": false },
+      { "ingredient_id": "tomato_passata", "quantity": 2, "unit": "tbsp", "is_core": false },
+      { "ingredient_id": "salt", "is_core": false },
+      { "ingredient_id": "black_pepper", "is_core": false }
     ],
     "steps": [
       "Gently fry the garlic and rosemary in the olive oil for a minute.",
@@ -18,19 +21,24 @@
       "Add the pasta and enough hot water to cover; cook until the pasta is al dente, stirring often.",
       "Season with salt and pepper and rest for 2 minutes before serving."
     ],
-    "adaptation": null, "source": "sample", "license": "sample data"
+    "adaptation": null,
+    "source": "sample",
+    "license": "sample data"
   },
   {
-    "id": "it-pasta-alla-norma", "name": "Pasta alla Norma", "name_it": "Pasta alla Norma", "country_code": "380",
+    "id": "it-pasta-alla-norma",
+    "name": "Pasta alla Norma",
+    "name_it": "Pasta alla Norma",
+    "country_code": "380",
     "ingredients": [
-      {"ingredient_id": "pasta", "quantity": 80, "unit": "g", "is_core": true},
-      {"ingredient_id": "eggplant", "quantity": 1, "unit": "medium", "is_core": true},
-      {"ingredient_id": "tomato_passata", "quantity": 150, "unit": "g", "is_core": true},
-      {"ingredient_id": "ricotta_salata", "quantity": 30, "unit": "g", "is_core": false},
-      {"ingredient_id": "basil", "quantity": 4, "unit": "leaves", "is_core": false},
-      {"ingredient_id": "garlic", "quantity": 1, "unit": "clove", "is_core": false},
-      {"ingredient_id": "olive_oil", "quantity": 3, "unit": "tbsp", "is_core": false},
-      {"ingredient_id": "salt", "is_core": false}
+      { "ingredient_id": "pasta", "quantity": 80, "unit": "g", "is_core": true },
+      { "ingredient_id": "eggplant", "quantity": 1, "unit": "medium", "is_core": true },
+      { "ingredient_id": "tomato_passata", "quantity": 150, "unit": "g", "is_core": true },
+      { "ingredient_id": "ricotta_salata", "quantity": 30, "unit": "g", "is_core": false },
+      { "ingredient_id": "basil", "quantity": 4, "unit": "leaves", "is_core": false },
+      { "ingredient_id": "garlic", "quantity": 1, "unit": "clove", "is_core": false },
+      { "ingredient_id": "olive_oil", "quantity": 3, "unit": "tbsp", "is_core": false },
+      { "ingredient_id": "salt", "is_core": false }
     ],
     "steps": [
       "Dice the eggplant, salt it and let it rest for 20 minutes, then pat it dry.",
@@ -39,16 +47,21 @@
       "Boil the pasta, drain it and toss it in the sauce with the eggplant.",
       "Top with grated ricotta salata and torn basil."
     ],
-    "adaptation": null, "source": "sample", "license": "sample data"
+    "adaptation": null,
+    "source": "sample",
+    "license": "sample data"
   },
   {
-    "id": "jp-nasu-dengaku", "name": "Miso-glazed eggplant (nasu dengaku)", "name_it": "Melanzana glassata al miso (nasu dengaku)", "country_code": "392",
+    "id": "jp-nasu-dengaku",
+    "name": "Miso-glazed eggplant (nasu dengaku)",
+    "name_it": "Melanzana glassata al miso (nasu dengaku)",
+    "country_code": "392",
     "ingredients": [
-      {"ingredient_id": "eggplant", "quantity": 1, "unit": "medium", "is_core": true},
-      {"ingredient_id": "miso", "quantity": 2, "unit": "tbsp", "is_core": true},
-      {"ingredient_id": "mirin", "quantity": 1, "unit": "tbsp", "is_core": false},
-      {"ingredient_id": "sugar", "quantity": 1, "unit": "tsp", "is_core": false},
-      {"ingredient_id": "sesame_oil", "quantity": 1, "unit": "tbsp", "is_core": false}
+      { "ingredient_id": "eggplant", "quantity": 1, "unit": "medium", "is_core": true },
+      { "ingredient_id": "miso", "quantity": 2, "unit": "tbsp", "is_core": true },
+      { "ingredient_id": "mirin", "quantity": 1, "unit": "tbsp", "is_core": false },
+      { "ingredient_id": "sugar", "quantity": 1, "unit": "tsp", "is_core": false },
+      { "ingredient_id": "sesame_oil", "quantity": 1, "unit": "tbsp", "is_core": false }
     ],
     "steps": [
       "Halve the eggplant lengthwise and score the flesh in a crosshatch pattern.",
@@ -56,21 +69,26 @@
       "Mix the miso, mirin and sugar into a smooth glaze.",
       "Flip the eggplant, spread the glaze on top and grill for 3-4 minutes until bubbling."
     ],
-    "adaptation": null, "source": "sample", "license": "sample data"
+    "adaptation": null,
+    "source": "sample",
+    "license": "sample data"
   },
   {
-    "id": "jp-agedashi-tofu-kombu", "name": "Agedashi tofu with kombu dashi", "name_it": "Agedashi tofu con dashi di kombu", "country_code": "392",
+    "id": "jp-agedashi-tofu-kombu",
+    "name": "Agedashi tofu with kombu dashi",
+    "name_it": "Agedashi tofu con dashi di kombu",
+    "country_code": "392",
     "ingredients": [
-      {"ingredient_id": "tofu", "quantity": 200, "unit": "g", "is_core": true},
-      {"ingredient_id": "potato_starch", "quantity": 2, "unit": "tbsp", "is_core": true},
-      {"ingredient_id": "vegetable_oil", "quantity": 150, "unit": "ml", "is_core": false},
-      {"ingredient_id": "kombu", "quantity": 5, "unit": "g", "is_core": true},
-      {"ingredient_id": "shiitake", "quantity": 2, "unit": "pieces", "is_core": false},
-      {"ingredient_id": "water", "quantity": 250, "unit": "ml", "is_core": false},
-      {"ingredient_id": "soy_sauce", "quantity": 1, "unit": "tbsp", "is_core": true},
-      {"ingredient_id": "mirin", "quantity": 1, "unit": "tbsp", "is_core": false},
-      {"ingredient_id": "daikon", "quantity": 30, "unit": "g", "is_core": false},
-      {"ingredient_id": "scallion", "quantity": 1, "unit": "stalk", "is_core": false}
+      { "ingredient_id": "tofu", "quantity": 200, "unit": "g", "is_core": true },
+      { "ingredient_id": "potato_starch", "quantity": 2, "unit": "tbsp", "is_core": true },
+      { "ingredient_id": "vegetable_oil", "quantity": 150, "unit": "ml", "is_core": false },
+      { "ingredient_id": "kombu", "quantity": 5, "unit": "g", "is_core": true },
+      { "ingredient_id": "shiitake", "quantity": 2, "unit": "pieces", "is_core": false },
+      { "ingredient_id": "water", "quantity": 250, "unit": "ml", "is_core": false },
+      { "ingredient_id": "soy_sauce", "quantity": 1, "unit": "tbsp", "is_core": true },
+      { "ingredient_id": "mirin", "quantity": 1, "unit": "tbsp", "is_core": false },
+      { "ingredient_id": "daikon", "quantity": 30, "unit": "g", "is_core": false },
+      { "ingredient_id": "scallion", "quantity": 1, "unit": "stalk", "is_core": false }
     ],
     "steps": [
       "Soak the kombu and shiitake in the water for at least 30 minutes, then heat gently and remove before it boils.",
@@ -83,17 +101,21 @@
       "original_dish": "Agedashi tofu",
       "changes": "The traditional broth uses katsuobushi (dried bonito) dashi; here it is replaced with kombu and shiitake dashi."
     },
-    "source": "sample", "license": "sample data"
+    "source": "sample",
+    "license": "sample data"
   },
   {
-    "id": "mx-frijoles-de-olla", "name": "Pot beans (frijoles de olla)", "name_it": "Fagioli in pentola (frijoles de olla)", "country_code": "484",
+    "id": "mx-frijoles-de-olla",
+    "name": "Pot beans (frijoles de olla)",
+    "name_it": "Fagioli in pentola (frijoles de olla)",
+    "country_code": "484",
     "ingredients": [
-      {"ingredient_id": "pinto_beans", "quantity": 100, "unit": "g", "is_core": true},
-      {"ingredient_id": "onion", "quantity": 0.5, "unit": "piece", "is_core": false},
-      {"ingredient_id": "garlic", "quantity": 2, "unit": "cloves", "is_core": false},
-      {"ingredient_id": "epazote", "quantity": 1, "unit": "sprig", "is_core": false},
-      {"ingredient_id": "water", "quantity": 600, "unit": "ml", "is_core": false},
-      {"ingredient_id": "salt", "is_core": false}
+      { "ingredient_id": "pinto_beans", "quantity": 100, "unit": "g", "is_core": true },
+      { "ingredient_id": "onion", "quantity": 0.5, "unit": "piece", "is_core": false },
+      { "ingredient_id": "garlic", "quantity": 2, "unit": "cloves", "is_core": false },
+      { "ingredient_id": "epazote", "quantity": 1, "unit": "sprig", "is_core": false },
+      { "ingredient_id": "water", "quantity": 600, "unit": "ml", "is_core": false },
+      { "ingredient_id": "salt", "is_core": false }
     ],
     "steps": [
       "Soak the beans overnight and drain them.",
@@ -101,19 +123,24 @@
       "Simmer for 1.5-2 hours until very tender, topping up with hot water if needed.",
       "Add salt in the last 20 minutes of cooking."
     ],
-    "adaptation": null, "source": "sample", "license": "sample data"
+    "adaptation": null,
+    "source": "sample",
+    "license": "sample data"
   },
   {
-    "id": "mx-huevos-rancheros", "name": "Ranch-style eggs (huevos rancheros)", "name_it": "Uova alla ranchera (huevos rancheros)", "country_code": "484",
+    "id": "mx-huevos-rancheros",
+    "name": "Ranch-style eggs (huevos rancheros)",
+    "name_it": "Uova alla ranchera (huevos rancheros)",
+    "country_code": "484",
     "ingredients": [
-      {"ingredient_id": "egg", "quantity": 2, "unit": "pieces", "is_core": true},
-      {"ingredient_id": "corn_tortilla", "quantity": 2, "unit": "pieces", "is_core": true},
-      {"ingredient_id": "tomato", "quantity": 2, "unit": "pieces", "is_core": true},
-      {"ingredient_id": "chili_pepper", "quantity": 1, "unit": "piece", "is_core": false},
-      {"ingredient_id": "onion", "quantity": 0.25, "unit": "piece", "is_core": false},
-      {"ingredient_id": "garlic", "quantity": 1, "unit": "clove", "is_core": false},
-      {"ingredient_id": "vegetable_oil", "quantity": 2, "unit": "tbsp", "is_core": false},
-      {"ingredient_id": "salt", "is_core": false}
+      { "ingredient_id": "egg", "quantity": 2, "unit": "pieces", "is_core": true },
+      { "ingredient_id": "corn_tortilla", "quantity": 2, "unit": "pieces", "is_core": true },
+      { "ingredient_id": "tomato", "quantity": 2, "unit": "pieces", "is_core": true },
+      { "ingredient_id": "chili_pepper", "quantity": 1, "unit": "piece", "is_core": false },
+      { "ingredient_id": "onion", "quantity": 0.25, "unit": "piece", "is_core": false },
+      { "ingredient_id": "garlic", "quantity": 1, "unit": "clove", "is_core": false },
+      { "ingredient_id": "vegetable_oil", "quantity": 2, "unit": "tbsp", "is_core": false },
+      { "ingredient_id": "salt", "is_core": false }
     ],
     "steps": [
       "Blend the tomatoes, chili, onion and garlic into a rough sauce.",
@@ -122,23 +149,28 @@
       "Fry the eggs and place each one on a tortilla.",
       "Spoon the hot sauce over the eggs and serve."
     ],
-    "adaptation": null, "source": "sample", "license": "sample data"
+    "adaptation": null,
+    "source": "sample",
+    "license": "sample data"
   },
   {
-    "id": "ma-vegetable-tajine", "name": "Vegetable tagine", "name_it": "Tajine di verdure", "country_code": "504",
+    "id": "ma-vegetable-tajine",
+    "name": "Vegetable tagine",
+    "name_it": "Tajine di verdure",
+    "country_code": "504",
     "ingredients": [
-      {"ingredient_id": "carrot", "quantity": 1, "unit": "piece", "is_core": true},
-      {"ingredient_id": "potato", "quantity": 1, "unit": "piece", "is_core": true},
-      {"ingredient_id": "zucchini", "quantity": 1, "unit": "piece", "is_core": false},
-      {"ingredient_id": "onion", "quantity": 0.5, "unit": "piece", "is_core": true},
-      {"ingredient_id": "tomato", "quantity": 1, "unit": "piece", "is_core": false},
-      {"ingredient_id": "chickpeas", "quantity": 80, "unit": "g", "is_core": false},
-      {"ingredient_id": "olive_oil", "quantity": 2, "unit": "tbsp", "is_core": false},
-      {"ingredient_id": "cumin", "quantity": 1, "unit": "tsp", "is_core": true},
-      {"ingredient_id": "ginger", "quantity": 1, "unit": "tsp", "is_core": false},
-      {"ingredient_id": "turmeric", "quantity": 0.5, "unit": "tsp", "is_core": false},
-      {"ingredient_id": "cilantro", "quantity": 1, "unit": "handful", "is_core": false},
-      {"ingredient_id": "salt", "is_core": false}
+      { "ingredient_id": "carrot", "quantity": 1, "unit": "piece", "is_core": true },
+      { "ingredient_id": "potato", "quantity": 1, "unit": "piece", "is_core": true },
+      { "ingredient_id": "zucchini", "quantity": 1, "unit": "piece", "is_core": false },
+      { "ingredient_id": "onion", "quantity": 0.5, "unit": "piece", "is_core": true },
+      { "ingredient_id": "tomato", "quantity": 1, "unit": "piece", "is_core": false },
+      { "ingredient_id": "chickpeas", "quantity": 80, "unit": "g", "is_core": false },
+      { "ingredient_id": "olive_oil", "quantity": 2, "unit": "tbsp", "is_core": false },
+      { "ingredient_id": "cumin", "quantity": 1, "unit": "tsp", "is_core": true },
+      { "ingredient_id": "ginger", "quantity": 1, "unit": "tsp", "is_core": false },
+      { "ingredient_id": "turmeric", "quantity": 0.5, "unit": "tsp", "is_core": false },
+      { "ingredient_id": "cilantro", "quantity": 1, "unit": "handful", "is_core": false },
+      { "ingredient_id": "salt", "is_core": false }
     ],
     "steps": [
       "Soften the sliced onion in the olive oil with the cumin, ginger and turmeric.",
@@ -146,20 +178,25 @@
       "Add zucchini and chickpeas and cook 10 more minutes until tender.",
       "Season with salt and finish with chopped cilantro."
     ],
-    "adaptation": null, "source": "sample", "license": "sample data"
+    "adaptation": null,
+    "source": "sample",
+    "license": "sample data"
   },
   {
-    "id": "ma-zaalouk", "name": "Zaalouk (eggplant and tomato salad)", "name_it": "Zaalouk (insalata di melanzane e pomodori)", "country_code": "504",
+    "id": "ma-zaalouk",
+    "name": "Zaalouk (eggplant and tomato salad)",
+    "name_it": "Zaalouk (insalata di melanzane e pomodori)",
+    "country_code": "504",
     "ingredients": [
-      {"ingredient_id": "eggplant", "quantity": 1, "unit": "medium", "is_core": true},
-      {"ingredient_id": "tomato", "quantity": 3, "unit": "pieces", "is_core": true},
-      {"ingredient_id": "garlic", "quantity": 2, "unit": "cloves", "is_core": true},
-      {"ingredient_id": "olive_oil", "quantity": 2, "unit": "tbsp", "is_core": false},
-      {"ingredient_id": "cumin", "quantity": 1, "unit": "tsp", "is_core": false},
-      {"ingredient_id": "paprika", "quantity": 1, "unit": "tsp", "is_core": false},
-      {"ingredient_id": "cilantro", "quantity": 1, "unit": "handful", "is_core": false},
-      {"ingredient_id": "lemon", "quantity": 0.5, "unit": "piece", "is_core": false},
-      {"ingredient_id": "salt", "is_core": false}
+      { "ingredient_id": "eggplant", "quantity": 1, "unit": "medium", "is_core": true },
+      { "ingredient_id": "tomato", "quantity": 3, "unit": "pieces", "is_core": true },
+      { "ingredient_id": "garlic", "quantity": 2, "unit": "cloves", "is_core": true },
+      { "ingredient_id": "olive_oil", "quantity": 2, "unit": "tbsp", "is_core": false },
+      { "ingredient_id": "cumin", "quantity": 1, "unit": "tsp", "is_core": false },
+      { "ingredient_id": "paprika", "quantity": 1, "unit": "tsp", "is_core": false },
+      { "ingredient_id": "cilantro", "quantity": 1, "unit": "handful", "is_core": false },
+      { "ingredient_id": "lemon", "quantity": 0.5, "unit": "piece", "is_core": false },
+      { "ingredient_id": "salt", "is_core": false }
     ],
     "steps": [
       "Peel and dice the eggplant; steam or boil it for 10 minutes and drain well.",
@@ -167,21 +204,26 @@
       "Add the eggplant and mash it into the tomatoes while cooking for 15 minutes.",
       "Finish with olive oil, lemon juice, cilantro and salt; serve warm or cold."
     ],
-    "adaptation": null, "source": "sample", "license": "sample data"
+    "adaptation": null,
+    "source": "sample",
+    "license": "sample data"
   },
   {
-    "id": "in-tadka-dal", "name": "Tadka dal", "name_it": "Dal tadka (lenticchie rosse speziate)", "country_code": "356",
+    "id": "in-tadka-dal",
+    "name": "Tadka dal",
+    "name_it": "Dal tadka (lenticchie rosse speziate)",
+    "country_code": "356",
     "ingredients": [
-      {"ingredient_id": "red_lentils", "quantity": 80, "unit": "g", "is_core": true},
-      {"ingredient_id": "onion", "quantity": 0.5, "unit": "piece", "is_core": false},
-      {"ingredient_id": "tomato", "quantity": 1, "unit": "piece", "is_core": false},
-      {"ingredient_id": "garlic", "quantity": 2, "unit": "cloves", "is_core": true},
-      {"ingredient_id": "ginger", "quantity": 1, "unit": "tsp", "is_core": false},
-      {"ingredient_id": "turmeric", "quantity": 0.5, "unit": "tsp", "is_core": true},
-      {"ingredient_id": "cumin", "quantity": 1, "unit": "tsp", "is_core": true},
-      {"ingredient_id": "vegetable_oil", "quantity": 1, "unit": "tbsp", "is_core": false},
-      {"ingredient_id": "water", "quantity": 300, "unit": "ml", "is_core": false},
-      {"ingredient_id": "salt", "is_core": false}
+      { "ingredient_id": "red_lentils", "quantity": 80, "unit": "g", "is_core": true },
+      { "ingredient_id": "onion", "quantity": 0.5, "unit": "piece", "is_core": false },
+      { "ingredient_id": "tomato", "quantity": 1, "unit": "piece", "is_core": false },
+      { "ingredient_id": "garlic", "quantity": 2, "unit": "cloves", "is_core": true },
+      { "ingredient_id": "ginger", "quantity": 1, "unit": "tsp", "is_core": false },
+      { "ingredient_id": "turmeric", "quantity": 0.5, "unit": "tsp", "is_core": true },
+      { "ingredient_id": "cumin", "quantity": 1, "unit": "tsp", "is_core": true },
+      { "ingredient_id": "vegetable_oil", "quantity": 1, "unit": "tbsp", "is_core": false },
+      { "ingredient_id": "water", "quantity": 300, "unit": "ml", "is_core": false },
+      { "ingredient_id": "salt", "is_core": false }
     ],
     "steps": [
       "Rinse the lentils and simmer them with water, turmeric and salt for 15-20 minutes until soft.",
@@ -189,20 +231,25 @@
       "Stir the mixture into the lentils.",
       "Heat the remaining oil, fry the cumin and sliced garlic until fragrant (the tadka) and pour over the dal."
     ],
-    "adaptation": null, "source": "sample", "license": "sample data"
+    "adaptation": null,
+    "source": "sample",
+    "license": "sample data"
   },
   {
-    "id": "in-palak-paneer", "name": "Palak paneer", "name_it": "Palak paneer (spinaci e formaggio fresco)", "country_code": "356",
+    "id": "in-palak-paneer",
+    "name": "Palak paneer",
+    "name_it": "Palak paneer (spinaci e formaggio fresco)",
+    "country_code": "356",
     "ingredients": [
-      {"ingredient_id": "spinach", "quantity": 200, "unit": "g", "is_core": true},
-      {"ingredient_id": "paneer", "quantity": 100, "unit": "g", "is_core": true},
-      {"ingredient_id": "onion", "quantity": 0.5, "unit": "piece", "is_core": false},
-      {"ingredient_id": "tomato", "quantity": 1, "unit": "piece", "is_core": false},
-      {"ingredient_id": "garlic", "quantity": 2, "unit": "cloves", "is_core": false},
-      {"ingredient_id": "ginger", "quantity": 1, "unit": "tsp", "is_core": false},
-      {"ingredient_id": "cumin", "quantity": 1, "unit": "tsp", "is_core": false},
-      {"ingredient_id": "vegetable_oil", "quantity": 1, "unit": "tbsp", "is_core": false},
-      {"ingredient_id": "salt", "is_core": false}
+      { "ingredient_id": "spinach", "quantity": 200, "unit": "g", "is_core": true },
+      { "ingredient_id": "paneer", "quantity": 100, "unit": "g", "is_core": true },
+      { "ingredient_id": "onion", "quantity": 0.5, "unit": "piece", "is_core": false },
+      { "ingredient_id": "tomato", "quantity": 1, "unit": "piece", "is_core": false },
+      { "ingredient_id": "garlic", "quantity": 2, "unit": "cloves", "is_core": false },
+      { "ingredient_id": "ginger", "quantity": 1, "unit": "tsp", "is_core": false },
+      { "ingredient_id": "cumin", "quantity": 1, "unit": "tsp", "is_core": false },
+      { "ingredient_id": "vegetable_oil", "quantity": 1, "unit": "tbsp", "is_core": false },
+      { "ingredient_id": "salt", "is_core": false }
     ],
     "steps": [
       "Blanch the spinach for 1 minute, cool it and blend into a smooth puree.",
@@ -210,6 +257,8 @@
       "Stir in the spinach puree and simmer for 5 minutes.",
       "Add the cubed paneer and salt; heat through for 3 minutes."
     ],
-    "adaptation": null, "source": "sample", "license": "sample data"
+    "adaptation": null,
+    "source": "sample",
+    "license": "sample data"
   }
 ]

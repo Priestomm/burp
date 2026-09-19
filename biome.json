@@ -2,7 +2,12 @@
   "$schema": "https://biomejs.dev/schemas/2.5.14/schema.json",
   "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
   "files": {
-    "includes": ["**", "!**/app/src/lib/types/generated.ts", "!**/app/static/data", "!**/pipeline/schema"]
+    "includes": [
+      "**",
+      "!**/app/src/lib/types/generated.ts",
+      "!**/app/static/data",
+      "!**/pipeline/schema"
+    ]
   },
   "formatter": { "indentStyle": "space", "indentWidth": 2, "lineWidth": 100 },
   "linter": { "enabled": true, "rules": { "recommended": true } },

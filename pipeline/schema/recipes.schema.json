@@ -2,7 +2,7 @@
   "$defs": {
     "Adaptation": {
       "additionalProperties": false,
-      "description": "Set when a vegetarian dish is a variant of a dish that traditionally contains meat or fish.",
+      "description": "Set when a vegetarian dish is a variant of a traditionally meat or fish dish.",
       "properties": {
         "original_dish": {
           "title": "Original Dish",

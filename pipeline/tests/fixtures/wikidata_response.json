@@ -1,32 +1,32 @@
 {
-  "head": {"vars": ["dish", "nameEn", "nameIt", "countryIso", "ingredient", "ingredientNameEn"]},
+  "head": { "vars": ["dish", "nameEn", "nameIt", "countryIso", "ingredient", "ingredientNameEn"] },
   "results": {
     "bindings": [
       {
-        "dish": {"type": "uri", "value": "http://www.wikidata.org/entity/Q1234501"},
-        "nameEn": {"type": "literal", "xml:lang": "en", "value": "Pasta e ceci"},
-        "nameIt": {"type": "literal", "xml:lang": "it", "value": "Pasta e ceci"},
-        "countryIso": {"type": "literal", "value": "380"},
-        "ingredient": {"type": "uri", "value": "http://www.wikidata.org/entity/Q1234601"},
-        "ingredientNameEn": {"type": "literal", "xml:lang": "en", "value": "chickpea"}
+        "dish": { "type": "uri", "value": "http://www.wikidata.org/entity/Q1234501" },
+        "nameEn": { "type": "literal", "xml:lang": "en", "value": "Pasta e ceci" },
+        "nameIt": { "type": "literal", "xml:lang": "it", "value": "Pasta e ceci" },
+        "countryIso": { "type": "literal", "value": "380" },
+        "ingredient": { "type": "uri", "value": "http://www.wikidata.org/entity/Q1234601" },
+        "ingredientNameEn": { "type": "literal", "xml:lang": "en", "value": "chickpea" }
       },
       {
-        "dish": {"type": "uri", "value": "http://www.wikidata.org/entity/Q1234501"},
-        "nameEn": {"type": "literal", "xml:lang": "en", "value": "Pasta e ceci"},
-        "nameIt": {"type": "literal", "xml:lang": "it", "value": "Pasta e ceci"},
-        "countryIso": {"type": "literal", "value": "380"},
-        "ingredient": {"type": "uri", "value": "http://www.wikidata.org/entity/Q1234602"},
-        "ingredientNameEn": {"type": "literal", "xml:lang": "en", "value": "pasta"}
+        "dish": { "type": "uri", "value": "http://www.wikidata.org/entity/Q1234501" },
+        "nameEn": { "type": "literal", "xml:lang": "en", "value": "Pasta e ceci" },
+        "nameIt": { "type": "literal", "xml:lang": "it", "value": "Pasta e ceci" },
+        "countryIso": { "type": "literal", "value": "380" },
+        "ingredient": { "type": "uri", "value": "http://www.wikidata.org/entity/Q1234602" },
+        "ingredientNameEn": { "type": "literal", "xml:lang": "en", "value": "pasta" }
       },
       {
-        "dish": {"type": "uri", "value": "http://www.wikidata.org/entity/Q1234502"},
-        "nameEn": {"type": "literal", "xml:lang": "en", "value": "Dal"},
-        "countryIso": {"type": "literal", "value": "356"}
+        "dish": { "type": "uri", "value": "http://www.wikidata.org/entity/Q1234502" },
+        "nameEn": { "type": "literal", "xml:lang": "en", "value": "Dal" },
+        "countryIso": { "type": "literal", "value": "356" }
       },
       {
-        "dish": {"type": "uri", "value": "http://www.wikidata.org/entity/Q1234503"},
-        "nameEn": {"type": "literal", "xml:lang": "en", "value": "Afghan test dish"},
-        "countryIso": {"type": "literal", "value": "4"}
+        "dish": { "type": "uri", "value": "http://www.wikidata.org/entity/Q1234503" },
+        "nameEn": { "type": "literal", "xml:lang": "en", "value": "Afghan test dish" },
+        "countryIso": { "type": "literal", "value": "4" }
       }
     ]
   }
