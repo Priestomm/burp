@@ -1,0 +1,162 @@
+{
+  "$defs": {
+    "Adaptation": {
+      "additionalProperties": false,
+      "description": "Set when a vegetarian dish is a variant of a dish that traditionally contains meat or fish.",
+      "properties": {
+        "original_dish": {
+          "title": "Original Dish",
+          "type": "string"
+        },
+        "changes": {
+          "title": "Changes",
+          "type": "string"
+        }
+      },
+      "required": [
+        "original_dish",
+        "changes"
+      ],
+      "title": "Adaptation",
+      "type": "object"
+    },
+    "Recipe": {
+      "additionalProperties": false,
+      "description": "A recipe as published to the app, with `diet` computed from its ingredients.",
+      "properties": {
+        "id": {
+          "pattern": "^[a-z0-9_-]+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "name_it": {
+          "title": "Name It",
+          "type": "string"
+        },
+        "country_code": {
+          "description": "ISO 3166-1 numeric, zero-padded; matches world-atlas feature ids",
+          "pattern": "^\\d{3}$",
+          "title": "Country Code",
+          "type": "string"
+        },
+        "servings": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Servings",
+          "type": "integer"
+        },
+        "ingredients": {
+          "items": {
+            "$ref": "#/$defs/RecipeIngredient"
+          },
+          "minItems": 1,
+          "title": "Ingredients",
+          "type": "array"
+        },
+        "steps": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Steps",
+          "type": "array"
+        },
+        "adaptation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Adaptation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "None for traditionally vegetarian/vegan dishes"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "license": {
+          "title": "License",
+          "type": "string"
+        },
+        "diet": {
+          "enum": [
+            "vegan",
+            "vegetarian"
+          ],
+          "title": "Diet",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "name_it",
+        "country_code",
+        "ingredients",
+        "steps",
+        "source",
+        "license",
+        "diet"
+      ],
+      "title": "Recipe",
+      "type": "object"
+    },
+    "RecipeIngredient": {
+      "additionalProperties": false,
+      "properties": {
+        "ingredient_id": {
+          "title": "Ingredient Id",
+          "type": "string"
+        },
+        "quantity": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "None means 'to taste'",
+          "title": "Quantity"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        },
+        "is_core": {
+          "description": "True if the dish is not the same without it",
+          "title": "Is Core",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ingredient_id",
+        "is_core"
+      ],
+      "title": "RecipeIngredient",
+      "type": "object"
+    }
+  },
+  "items": {
+    "$ref": "#/$defs/Recipe"
+  },
+  "type": "array"
+}
