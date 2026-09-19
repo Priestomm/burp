@@ -1,20 +1,12 @@
 <script lang="ts">
   import { geoNaturalEarth1, geoPath } from 'd3-geo';
-  import { feature } from 'topojson-client';
-  import type { GeometryCollection, Topology } from 'topojson-specification';
-  import topology from 'world-atlas/countries-110m.json';
+  import { featureName, countryFeatures as features } from '$lib/countries';
   import { LEVEL_LABELS } from '$lib/labels';
   import { app } from '$lib/stores.svelte';
   import PatternDefs from './PatternDefs.svelte';
 
   const WIDTH = 960;
   const HEIGHT = 500;
-  const ANTARCTICA = '010';
-
-  const world = topology as unknown as Topology<{ countries: GeometryCollection }>;
-  const features = feature(world, world.objects.countries).features.filter(
-    (f) => String(f.id) !== ANTARCTICA,
-  );
   const projection = geoNaturalEarth1().fitExtent(
     [
       [4, 4],
@@ -28,7 +20,7 @@
   const shapes = features.map((f, index) => ({
     key: f.id === undefined ? `no-id-${index}` : String(f.id),
     code: f.id === undefined ? null : String(f.id).padStart(3, '0'),
-    name: String((f.properties as { name?: string } | null)?.name ?? ''),
+    name: featureName(f),
     d: toPath(f) ?? '',
   }));
 
