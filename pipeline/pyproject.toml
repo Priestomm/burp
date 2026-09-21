@@ -10,6 +10,9 @@ dependencies = [
     "pydantic>=2.13.5",
 ]
 
+[project.optional-dependencies]
+media = ["yt-dlp>=2025.1.1", "faster-whisper>=1.1.0", "av>=14.0.0"]
+
 [dependency-groups]
 dev = [
     "pytest>=9.1.1",
