@@ -3,8 +3,10 @@ name = "mappetito-pipeline"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
+    "anthropic>=1.7.0",
     "httpx>=0.28.1",
     "polars>=1.44.2",
+    "pycountry>=26.2.16",
     "pydantic>=2.13.5",
 ]
 
@@ -17,6 +19,8 @@ dev = [
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+addopts = "-m 'not live'"
+markers = ["live: calls the real Anthropic API (needs ANTHROPIC_API_KEY)"]
 
 [tool.ruff]
 line-length = 100
