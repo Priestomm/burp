@@ -83,6 +83,68 @@ La CI (GitHub Actions) esegue tutto questo e verifica anche che dati e tipi gene
 
 Nota: pnpm 10+ non esegue gli script di installazione delle dipendenze finché non li approvi. Per far girare `wrangler dev` nel worker serve `pnpm approve-builds`.
 
+## Importare ricette da Instagram
+
+Una pipeline a stadi trasforma un post o reel che **condividi tu** (un link alla volta, nessuno scraping) in una ricetta strutturata e geolocalizzata, cioè un pin sulla mappa:
+
+```
+link / caption incollata / screenshot
+  → estrazione: caption → trascrizione audio (Whisper) → frame analizzati da Claude
+  → strutturazione LLM (JSON validato con Pydantic, un retry se invalido)
+  → riconciliazione: ingredienti sul catalogo canonico, ISO2 → codice numerico, dieta calcolata
+  → pipeline/data/imported/<id>.json  →  build.py  →  mappa
+```
+
+L'estrazione costa di più a ogni passo e scala solo se il precedente non basta; il log dice quale fonte è stata usata e perché (`fonte` e `reason` sono salvati nel file della ricetta).
+
+### Configurazione
+
+```sh
+cd pipeline
+uv sync                    # basta per caption incollata e screenshot
+uv sync --extra media      # in più: scarico dei link (yt-dlp), trascrizione (faster-whisper), frame
+cp .env.example .env       # poi compila ANTHROPIC_API_KEY (e i token Telegram se usi il bot)
+```
+
+Le chiavi si leggono dalle variabili d'ambiente (o da `pipeline/.env`, ignorato da git). `MAPPETITO_MODEL` sceglie il modello (default `claude-opus-5`).
+
+### CLI
+
+```sh
+uv run python import_recipe.py --url https://www.instagram.com/reel/XXXX/
+uv run python import_recipe.py --caption-file caption.txt --url https://www.instagram.com/p/XXXX/
+uv run python import_recipe.py --screenshot a.png b.png
+uv run python import_recipe.py --url ... --dry-run     # mostra il risultato senza salvare
+```
+
+Il **fallback manuale funziona sempre**: `--caption`, `--caption-file` e `--screenshot` non scaricano nulla. Se un link non si scarica (Instagram spesso richiede il login per i reel), imposta `INSTAGRAM_COOKIES_FILE` con un file di cookie in formato Netscape, oppure incolla la caption o manda uno screenshot.
+
+### Bot Telegram
+
+```sh
+# in pipeline/.env: TELEGRAM_BOT_TOKEN (da @BotFather) e TELEGRAM_ALLOWED_USER_IDS (i tuoi id, separati da virgola)
+uv run python bot.py
+```
+
+Inoltra al bot un link, incolla una caption o mandagli uno screenshot: risponde con titolo, paese, dieta e stato. Serve solo gli id in `TELEGRAM_ALLOWED_USER_IDS`.
+
+### Cosa finisce sulla mappa
+
+Ogni ricetta è un file in `pipeline/data/imported/` con `status`:
+
+- `ready`: `build.py` la pubblica insieme ai dati curati.
+- `needs_review`: **non** viene pubblicata. Succede se la confidenza sul paese è sotto 0,6 (invece di inventarlo), se un ingrediente non è nel catalogo, o se la dieta dichiarata dal modello non torna con gli ingredienti. `issues` spiega perché: correggi `draft` a mano, poi metti `status` a `ready`.
+
+I piatti con carne o pesce vengono **veganizzati**: le sostituzioni proposte sono applicate agli ingredienti e registrate in `adaptation`. Nota: i passaggi (`steps`) restano quelli originali e possono ancora nominare l'ingrediente sostituito, da ritoccare in revisione.
+
+```sh
+cd pipeline && uv run python build.py     # rigenera app/static/data/recipes.json
+```
+
+Il paese usa il codice ISO 3166-1 **numerico** (come gli id di `world-atlas`); il modello ragiona in ISO2 e la conversione avviene in `reconcile.py`.
+
+I test con l'API vera sono opt-in (costano): `ANTHROPIC_API_KEY=... uv run pytest -m live`. `uv run pytest` resta offline.
+
 ## Fonti dati previste
 
 | Fonte | Uso previsto | Licenza |
