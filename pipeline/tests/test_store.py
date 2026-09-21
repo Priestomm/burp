@@ -28,3 +28,23 @@ def _low_confidence():
         title="Fusion",
         origin={"country_iso2": "KR", "cuisine": "?", "confidence": 0.2, "reasoning": "?"},
     )
+
+
+def test_build_publishes_ready_imports_and_skips_needs_review(tmp_path, ingredients):
+    import json
+
+    from build import build
+
+    imported = tmp_path / "imported"
+    ready = reconcile(recipe(), ingredients)
+    save(ready, imported)
+    save(reconcile(_low_confidence(), ingredients), imported)
+
+    _, recipes = build(tmp_path / "out", imported_dir=imported)
+
+    published = json.loads((tmp_path / "out" / "recipes.json").read_text())
+    ids = {r["id"] for r in published}
+    assert len(recipes) == len(published) == 11  # 10 seed + 1 ready import
+    assert ready.id in ids
+    assert "kr-fusion" not in ids
+    assert next(r for r in published if r["id"] == ready.id)["diet"] == "vegan"

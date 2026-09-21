@@ -28,7 +28,7 @@ def test_seed_has_at_least_one_adaptation():
 
 
 def test_build_writes_json_with_computed_diet(tmp_path):
-    _, recipes = build(tmp_path)
+    _, recipes = build(tmp_path, imported_dir=tmp_path / "no-imports")
     written = json.loads((tmp_path / "recipes.json").read_text())
     assert len(written) == len(recipes) == 10
     diets = {r["id"]: r["diet"] for r in written}

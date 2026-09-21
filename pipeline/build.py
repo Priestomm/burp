@@ -1,7 +1,8 @@
 """Build the dataset consumed by the app.
 
-Reads curated data, validates it with Pydantic, computes each recipe's `diet`
-and writes `recipes.json` and `ingredients.json` into `app/static/data/`.
+Reads curated data plus the `ready` recipes imported from posts (data/imported/),
+validates them with Pydantic, computes each recipe's `diet` and writes `recipes.json`
+and `ingredients.json` into `app/static/data/`.
 """
 
 import json
@@ -11,15 +12,18 @@ from pathlib import Path
 from pydantic import TypeAdapter
 
 from mappetito_pipeline.diet import DietError, to_recipe
+from mappetito_pipeline.ingest.store import IMPORTED_DIR, ready_drafts
 from mappetito_pipeline.loader import load_ingredients, load_recipe_drafts
 from mappetito_pipeline.models import Ingredient, Recipe
 
 OUTPUT_DIR = Path(__file__).parent.parent / "app" / "static" / "data"
 
 
-def build(output_dir: Path = OUTPUT_DIR) -> tuple[list[Ingredient], list[Recipe]]:
+def build(
+    output_dir: Path = OUTPUT_DIR, imported_dir: Path = IMPORTED_DIR
+) -> tuple[list[Ingredient], list[Recipe]]:
     ingredients = load_ingredients()
-    drafts = load_recipe_drafts()
+    drafts = [*load_recipe_drafts(), *ready_drafts(imported_dir)]
 
     ids = [d.id for d in drafts]
     duplicates = {i for i in ids if ids.count(i) > 1}
