@@ -16,7 +16,7 @@ import anthropic
 import httpx
 
 from burp.catalog import SynonymIndex, load_ingredients
-from burp.config import Settings, load_env
+from burp.config import Settings, load_env, setup_logging
 from burp.extract import InsufficientContentError, is_sufficient
 from burp.frames import ClaudeFrameDescriber
 from burp.ingest import (
@@ -169,6 +169,12 @@ def handle_update(
         reply = f"Non sono riuscito a strutturare la ricetta: {error}"
     except RuntimeError as error:  # e.g. the optional `media` extra is not installed
         reply = f"Errore: {error}"
+    except Exception as error:  # a bug: say so instead of leaving the chat silent
+        log.exception("import failed")
+        reply = (
+            f"Errore imprevisto ({type(error).__name__}: {error}). "
+            "Riprova, oppure incolla la caption o mandami uno screenshot."
+        )
     else:
         saved, created = library.add(imported)
         status = f"Salvata come #{saved.id}." if created else f"Già in libreria (#{saved.id})."
@@ -211,7 +217,7 @@ def poll(api: TelegramApi, handler: Callable[[dict], None]) -> None:
 
 def main() -> int:
     load_env()
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    setup_logging("%(asctime)s %(levelname)s %(message)s")
     settings = Settings.from_env()
     if not settings.telegram_bot_token or not settings.anthropic_api_key:
         log.error("TELEGRAM_BOT_TOKEN and ANTHROPIC_API_KEY are required (see .env.example)")

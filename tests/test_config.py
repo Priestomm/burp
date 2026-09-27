@@ -40,3 +40,12 @@ def test_settings_defaults(monkeypatch):
 def test_settings_parse_allowed_user_ids(monkeypatch):
     monkeypatch.setenv("TELEGRAM_ALLOWED_USER_IDS", "12, 34,")
     assert Settings.from_env().telegram_allowed_user_ids == frozenset({12, 34})
+
+
+def test_http_request_logs_are_silenced_because_urls_contain_the_bot_token():
+    import logging
+
+    from burp.config import setup_logging
+
+    setup_logging()
+    assert not logging.getLogger("httpx").isEnabledFor(logging.INFO)

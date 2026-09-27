@@ -1,5 +1,6 @@
 """Runtime configuration read from environment variables (and an optional .env file)."""
 
+import logging
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -19,6 +20,13 @@ def load_env(path: Path = ROOT_DIR / ".env") -> None:
             continue
         key, _, value = line.partition("=")
         os.environ.setdefault(key.strip(), value.strip().strip("\"'"))
+
+
+def setup_logging(fmt: str = "%(levelname)s %(message)s") -> None:
+    logging.basicConfig(level=logging.INFO, format=fmt)
+    # HTTP clients log every request URL, and Telegram's URLs contain the bot token.
+    for name in ("httpx", "httpx2", "httpcore"):
+        logging.getLogger(name).setLevel(logging.WARNING)
 
 
 @dataclass(frozen=True)

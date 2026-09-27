@@ -23,9 +23,19 @@ def extract_frames(video_path: Path, out_dir: Path, count: int = 6) -> list[Path
     """Save `count` evenly spaced frames of a video as JPEGs (needs the `media` extra)."""
     try:
         import av
+        import PIL  # noqa: F401  (PyAV needs Pillow to save frames as images)
     except ImportError as error:
-        raise RuntimeError("PyAV is not installed. Run `uv sync --extra media`.") from error
+        raise RuntimeError(
+            f"{error.name} is not installed. Run `uv sync --extra media`."
+        ) from error
     out_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        return _save_frames(av, video_path, out_dir, count)
+    except av.error.FFmpegError as error:  # unreadable or truncated video
+        raise RuntimeError(f"could not read the video: {error}") from error
+
+
+def _save_frames(av, video_path: Path, out_dir: Path, count: int) -> list[Path]:
     with av.open(str(video_path)) as container:
         stream = container.streams.video[0]
         duration = float(container.duration or 0) / av.time_base

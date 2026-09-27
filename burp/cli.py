@@ -11,14 +11,13 @@ The manual inputs (--caption, --caption-file, --screenshot) always work, with no
 """
 
 import argparse
-import logging
 import sys
 from pathlib import Path
 
 import anthropic
 
 from burp.catalog import SynonymIndex, load_ingredients
-from burp.config import Settings, load_env
+from burp.config import Settings, load_env, setup_logging
 from burp.frames import ClaudeFrameDescriber
 from burp.ingest import SourcePost, fetch_instagram, from_caption, from_screenshots
 from burp.library import Library
@@ -76,7 +75,7 @@ def main(
     library: Library | None = None,
 ) -> int:
     load_env()
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    setup_logging()
     args = parse_args(argv)
     settings = Settings.from_env()
     if args.command == "bot":

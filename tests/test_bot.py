@@ -211,3 +211,14 @@ def test_long_replies_are_split_under_the_telegram_limit():
     assert all(len(chunk) <= 1000 for chunk in chunks)
     assert "\n".join(chunks) == text
     assert split_message("y" * 2500, limit=1000) == ["y" * 1000, "y" * 1000, "y" * 500]
+
+
+def test_an_unexpected_error_is_reported_instead_of_leaving_the_chat_silent(library):
+    sent: list[dict] = []
+
+    def bug(post):
+        raise ModuleNotFoundError("No module named 'PIL'")
+
+    handle_update(message("ciao"), make_api(sent), ALLOWED, bug, library)
+    assert "Errore imprevisto (ModuleNotFoundError" in sent[0]["text"]
+    assert "screenshot" in sent[0]["text"]
