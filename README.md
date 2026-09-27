@@ -1,14 +1,131 @@
 # burp!
 
-Trasforma post e reel Instagram in ricette strutturate, salvate in una libreria personale.
+Trasforma post e reel Instagram in ricette strutturate, salvate in una libreria personale in cui puoi cercare per titolo, tag e ingrediente.
 
-> In lavorazione: le istruzioni complete per CLI e bot arrivano con la pipeline.
+Si processa solo quello che condividi tu, un link alla volta: niente scraping. Se un link non si scarica, puoi sempre incollare la caption o mandare uno screenshot.
 
-## Requisiti
+## Come funziona
 
-- [uv](https://docs.astral.sh/uv/) (Python ≥ 3.13)
+La pipeline è divisa in stadi separati, ognuno testabile da solo:
+
+```
+link / caption incollata / screenshot
+  1. ingestion      burp/ingest.py      normalizza il link, scarica caption e video (yt-dlp)
+  2. estrazione     burp/extract.py     caption → trascrizione audio (Whisper) → frame letti da Claude
+  3. strutturazione burp/structure.py   JSON validato con Pydantic, un retry se invalido
+  4. libreria       burp/library.py     SQLite, ricerca, deduplica per link
+```
+
+- **Ingestion.** I link vengono ridotti a una forma canonica: senza `?igsh=…`, senza il nome dell'autore davanti e con `/reels/` riscritto in `/reel/`. Da yt-dlp si legge anche l'`author_handle`.
+- **Estrazione a costo crescente.** Ogni fonte si usa solo se la precedente non basta. Una caption "basta" se ha almeno 25 parole e delle quantità o un elenco di ingredienti. Se Whisper o PyAV non sono installati, si passa allo stadio successivo. Il log dice quale fonte è stata usata e perché, e fonte e motivo sono salvati con la ricetta.
+- **Strutturazione.** Claude compila lo schema qui sotto, sempre in italiano (anche se il post è in inglese); solo `original_text` resta com'era. Poi alcune regole deterministiche controllano la risposta:
+  - i nomi degli ingredienti vengono ricondotti al catalogo canonico (`data/ingredients.json`), così "pomodori", "tomato" e "pomodoro" diventano uno solo;
+  - se manca una quantità (e non è q.b.) o mancano i passaggi, la ricetta è `partial`, anche se il modello l'aveva dichiarata completa;
+  - la dieta non può essere più permissiva di quanto dicono gli ingredienti noti: una ricetta "vegetarian" con pecorino, che contiene caglio animale, diventa "neither".
+- **Libreria.** Lo stesso post condiviso due volte viene salvato una volta sola, anche se una volta arriva come `/p/` e l'altra come `/reel/`. Il controllo avviene **prima** di scaricare o di chiamare il modello, quindi un duplicato non costa niente.
+
+### Schema della ricetta (`burp/models.py`)
+
+```jsonc
+{
+  "title": "Pasta zucchine e menta",
+  "source_url": "https://www.instagram.com/reel/XXXX/",
+  "author_handle": "cucina.di.anna",
+  "servings": null,
+  "time_minutes": null,
+  "ingredients": [
+    { "canonical_name": "pasta", "original_text": "pasta corta", "quantity": null, "unit": null },
+    { "canonical_name": "zucchina", "original_text": "2 zucchine", "quantity": 2, "unit": null },
+    { "canonical_name": "sale", "original_text": "sale e pepe", "quantity": null, "unit": "q.b." }
+  ],
+  "steps": ["Dora le zucchine in padella.", "…"],
+  "tags": { "cuisine": "italiana", "course": "primo", "diet": "neither" },
+  "completeness": { "status": "partial", "missing": ["quantità di pasta"] }
+}
+```
+
+`course` è uno tra: antipasto, primo, secondo, contorno, piatto unico, dolce, colazione, snack, bevanda, salsa. `diet` è `vegan`, `vegetarian` o `neither`.
+
+## Installazione
+
+Serve [uv](https://docs.astral.sh/uv/) (Python ≥ 3.13).
 
 ```sh
-uv sync
-uv run pytest
+uv sync                    # basta per caption incollata e screenshot
+uv sync --extra media      # in più: scarico dei link (yt-dlp), trascrizione (faster-whisper), frame (PyAV)
+cp .env.example .env       # poi compila ANTHROPIC_API_KEY (e i token Telegram se usi il bot)
 ```
+
+Chiavi e token si leggono dalle variabili d'ambiente o da `.env`, che git ignora. Le variabili disponibili:
+
+| Variabile | A cosa serve |
+| --- | --- |
+| `ANTHROPIC_API_KEY` | obbligatoria per importare |
+| `BURP_MODEL` | modello usato (default `claude-opus-5-5`) |
+| `BURP_DB_PATH` | dove sta la libreria (default `data/burp.db`) |
+| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_USER_IDS` | bot Telegram |
+| `WHISPER_MODEL` | modello Whisper locale (`tiny`, `base`, `small`…) |
+| `INSTAGRAM_COOKIES_FILE` | cookie per i link che richiedono il login |
+
+## CLI
+
+```sh
+# importare
+uv run burp import --url https://www.instagram.com/reel/XXXX/
+uv run burp import --caption-file caption.txt --url https://www.instagram.com/p/XXXX/
+uv run burp import --caption "testo incollato…"
+uv run burp import --screenshot a.png b.png
+uv run burp import --url … --dry-run          # mostra il risultato senza salvare
+
+# cercare (i filtri si combinano; senza filtri elenca tutto)
+uv run burp search carbonara
+uv run burp search --tag primo --tag vegana
+uv run burp search --ingredient ceci --ingredient pasta
+
+# leggere e togliere
+uv run burp show 3
+uv run burp show 3 --json
+uv run burp delete 3
+```
+
+Il **fallback manuale funziona sempre**: `--caption`, `--caption-file` e `--screenshot` non scaricano nulla. Se un link non si scarica (Instagram spesso chiede il login per i reel), imposta `INSTAGRAM_COOKIES_FILE` con un file di cookie in formato Netscape, oppure incolla la caption o usa uno screenshot. Con `--url` insieme a una caption o a uno screenshot, il link resta come fonte e serve per la deduplica.
+
+Come funziona la ricerca:
+- per titolo, ignorando maiuscole e accenti;
+- per tag, che confronta cucina, portata o dieta (anche in italiano: "vegana", "vegetariana");
+- per ingrediente, sul nome canonico: "chickpeas" trova "ceci", "pecorino" trova "pecorino romano".
+
+## Bot Telegram
+
+1. Crea un bot con [@BotFather](https://t.me/BotFather) e metti il token in `TELEGRAM_BOT_TOKEN`.
+2. Metti il tuo id numerico in `TELEGRAM_ALLOWED_USER_IDS` (lo trovi con @userinfobot). Separa più id con una virgola.
+3. Avvia il bot:
+
+```sh
+uv run burp bot
+```
+
+Inoltra al bot un link, incolla una caption o mandagli uno screenshot. Risponde con titolo, tag, completezza, fonte usata e numero nella libreria. Se il link è già in libreria te lo dice e non rifà niente. Il bot risponde solo agli id in `TELEGRAM_ALLOWED_USER_IDS`.
+
+## Test
+
+```sh
+uv run ruff check . && uv run ruff format --check .
+uv run pytest                                        # offline, nessuna chiamata a pagamento
+ANTHROPIC_API_KEY=… uv run pytest -m live            # contro l'API vera (costa)
+```
+
+`tests/fixtures/captions/` contiene quattro caption di riferimento:
+
+| Fixture | Caso |
+| --- | --- |
+| `completa.txt` | ricetta completa: deve risultare `complete` |
+| `quantita_mancanti.txt` | quantità non dette: `partial`, nessuna quantità inventata |
+| `vuota.txt` | caption vuota: serve il fallback su trascrizione o frame |
+| `inglese.txt` | caption in inglese: la ricetta va salvata in italiano |
+
+`tests/test_fixtures.py` le fa passare per tutta la pipeline con un modello finto e verifica le garanzie del codice: fonte scelta, completezza forzata, nomi canonici. `tests/test_structure_live.py` verifica che il modello vero si comporti come previsto, per esempio che traduca davvero la caption inglese.
+
+## Fuori scope, per ora
+
+UI dell'app, share sheet mobile, lista della spesa, porzioni scalabili.
