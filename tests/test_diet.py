@@ -1,13 +1,13 @@
 import pytest
 from pydantic import ValidationError
 
-from mappetito_pipeline.diet import (
+from burp.diet import (
     NonVegetarianIngredientError,
     UnknownIngredientError,
     compute_diet,
     to_recipe,
 )
-from mappetito_pipeline.models import Ingredient
+from burp.models import Ingredient
 
 
 def test_all_vegan_ingredients_give_vegan(ingredients, make_draft):
@@ -35,7 +35,7 @@ def test_to_recipe_sets_computed_diet(ingredients, make_draft):
 
 def test_draft_cannot_declare_diet(make_draft):
     data = make_draft("tofu").model_dump() | {"diet": "vegan"}
-    from mappetito_pipeline.models import RecipeDraft
+    from burp.models import RecipeDraft
 
     with pytest.raises(ValidationError):
         RecipeDraft(**data)

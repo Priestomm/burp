@@ -4,7 +4,7 @@ from pathlib import Path
 
 from pydantic import TypeAdapter
 
-from mappetito_pipeline.models import Ingredient
+from burp.models import Ingredient
 
 SEED_DIR = Path(__file__).parent.parent / "data" / "seed"
 

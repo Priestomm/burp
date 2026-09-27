@@ -10,10 +10,10 @@ from pathlib import Path
 import anthropic
 import pytest
 
-from mappetito_pipeline.config import DEFAULT_MODEL
-from mappetito_pipeline.ingest.content import is_sufficient
-from mappetito_pipeline.ingest.reconcile import reconcile
-from mappetito_pipeline.ingest.structure import structure_recipe
+from burp.config import DEFAULT_MODEL
+from burp.ingest.content import is_sufficient
+from burp.ingest.reconcile import reconcile
+from burp.ingest.structure import structure_recipe
 
 CAPTIONS = Path(__file__).parent / "fixtures" / "captions"
 
@@ -26,7 +26,7 @@ pytestmark = [
 @pytest.fixture(scope="module")
 def structure(ingredients):
     client = anthropic.Anthropic()
-    model = os.environ.get("MAPPETITO_MODEL", DEFAULT_MODEL)
+    model = os.environ.get("BURP_MODEL", DEFAULT_MODEL)
 
     def run(name: str):
         text = (CAPTIONS / f"{name}.txt").read_text()

@@ -2,8 +2,8 @@ import json
 
 import pytest
 
-from mappetito_pipeline.ingest import sources
-from mappetito_pipeline.ingest.sources import (
+from burp.ingest import sources
+from burp.ingest.sources import (
     IngestionError,
     fetch_instagram,
     find_instagram_url,

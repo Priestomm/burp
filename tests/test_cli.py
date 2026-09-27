@@ -1,8 +1,8 @@
 import json
 from pathlib import Path
 
+from burp.ingest.structure import ExtractedRecipe
 from import_recipe import main
-from mappetito_pipeline.ingest.structure import ExtractedRecipe
 from tests.test_structure import FakeClient, valid_recipe
 
 CAPTIONS = Path(__file__).parent / "fixtures" / "captions"

@@ -13,15 +13,15 @@ from dataclasses import dataclass
 
 import pycountry
 
-from mappetito_pipeline.diet import (
+from burp.diet import (
     NonVegetarianIngredientError,
     UnknownIngredientError,
     compute_diet,
 )
-from mappetito_pipeline.ingest.store import ImportedRecipe, Provenance
-from mappetito_pipeline.ingest.structure import ExtractedIngredient, ExtractedRecipe
-from mappetito_pipeline.matching import SynonymIndex, normalize_name
-from mappetito_pipeline.models import Adaptation, Diet, Ingredient, RecipeDraft, RecipeIngredient
+from burp.ingest.store import ImportedRecipe, Provenance
+from burp.ingest.structure import ExtractedIngredient, ExtractedRecipe
+from burp.matching import SynonymIndex, normalize_name
+from burp.models import Adaptation, Diet, Ingredient, RecipeDraft, RecipeIngredient
 
 
 @dataclass

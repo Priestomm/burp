@@ -1,6 +1,6 @@
 import pytest
 
-from mappetito_pipeline.matching import SynonymIndex, normalize_name
+from burp.matching import SynonymIndex, normalize_name
 
 
 @pytest.fixture(scope="module")

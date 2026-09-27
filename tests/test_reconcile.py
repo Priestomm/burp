@@ -1,8 +1,8 @@
 import pytest
 
-from mappetito_pipeline.ingest.reconcile import country_numeric, reconcile, slugify
-from mappetito_pipeline.ingest.store import Provenance
-from mappetito_pipeline.ingest.structure import ExtractedRecipe
+from burp.ingest.reconcile import country_numeric, reconcile, slugify
+from burp.ingest.store import Provenance
+from burp.ingest.structure import ExtractedRecipe
 
 
 def ing(name, text=None, quantity=None, unit=None):

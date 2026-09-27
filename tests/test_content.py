@@ -3,13 +3,13 @@ from pathlib import Path
 
 import pytest
 
-from mappetito_pipeline.ingest import content
-from mappetito_pipeline.ingest.content import (
+from burp.ingest import content
+from burp.ingest.content import (
     InsufficientContentError,
     extract_content,
     is_sufficient,
 )
-from mappetito_pipeline.ingest.sources import SourcePost
+from burp.ingest.sources import SourcePost
 
 CAPTIONS = Path(__file__).parent / "fixtures" / "captions"
 FULL_RECIPE = "Ingredienti: " + " ".join(f"{n} g di farina bianca" for n in range(10, 20))

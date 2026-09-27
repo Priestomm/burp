@@ -7,14 +7,14 @@ from collections.abc import Mapping
 
 import anthropic
 
-from mappetito_pipeline.ingest.content import extract_content
-from mappetito_pipeline.ingest.frames import FrameDescriber
-from mappetito_pipeline.ingest.reconcile import reconcile
-from mappetito_pipeline.ingest.sources import SourcePost
-from mappetito_pipeline.ingest.store import ImportedRecipe, Provenance
-from mappetito_pipeline.ingest.structure import structure_recipe
-from mappetito_pipeline.ingest.transcribe import Transcriber
-from mappetito_pipeline.models import Ingredient
+from burp.ingest.content import extract_content
+from burp.ingest.frames import FrameDescriber
+from burp.ingest.reconcile import reconcile
+from burp.ingest.sources import SourcePost
+from burp.ingest.store import ImportedRecipe, Provenance
+from burp.ingest.structure import structure_recipe
+from burp.ingest.transcribe import Transcriber
+from burp.models import Ingredient
 
 
 def import_post(

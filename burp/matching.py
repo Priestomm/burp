@@ -9,7 +9,7 @@ import re
 import unicodedata
 from collections.abc import Mapping
 
-from mappetito_pipeline.models import Ingredient
+from burp.models import Ingredient
 
 _NON_WORD = re.compile(r"[^a-z0-9]+")
 

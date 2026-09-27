@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import pytest
 from pydantic import ValidationError
 
-from mappetito_pipeline.ingest.structure import (
+from burp.ingest.structure import (
     ExtractedRecipe,
     StructuringError,
     structure_recipe,

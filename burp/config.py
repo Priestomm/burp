@@ -4,11 +4,11 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-PIPELINE_DIR = Path(__file__).parent.parent
-DEFAULT_MODEL = "claude-opus-5"
+ROOT_DIR = Path(__file__).parent.parent
+DEFAULT_MODEL = "claude-opus-5-5"
 
 
-def load_env(path: Path = PIPELINE_DIR / ".env") -> None:
+def load_env(path: Path = ROOT_DIR / ".env") -> None:
     """Load KEY=VALUE lines from `path` into os.environ, never overriding existing variables."""
     if not path.exists():
         return
@@ -35,7 +35,7 @@ class Settings:
         allowed = os.environ.get("TELEGRAM_ALLOWED_USER_IDS", "")
         return cls(
             anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY") or None,
-            model=os.environ.get("MAPPETITO_MODEL") or DEFAULT_MODEL,
+            model=os.environ.get("BURP_MODEL") or DEFAULT_MODEL,
             telegram_bot_token=os.environ.get("TELEGRAM_BOT_TOKEN") or None,
             telegram_allowed_user_ids=frozenset(
                 int(part) for part in allowed.split(",") if part.strip()

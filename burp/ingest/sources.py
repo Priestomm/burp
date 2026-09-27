@@ -56,7 +56,7 @@ def fetch_instagram(
             "yt-dlp is not installed. Run `uv sync --extra media`, or paste the caption "
             "(--caption-file) or send a screenshot instead."
         )
-    workdir = workdir or Path(tempfile.mkdtemp(prefix="mappetito-"))
+    workdir = workdir or Path(tempfile.mkdtemp(prefix="burp-"))
     command = [ytdlp, "--no-playlist", "--write-info-json", "-o", str(workdir / "post.%(ext)s")]
     if cookies_file:
         command += ["--cookies", str(cookies_file)]

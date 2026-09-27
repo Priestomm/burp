@@ -15,11 +15,11 @@ from pathlib import Path
 import anthropic
 import httpx
 
-from mappetito_pipeline.config import Settings, load_env
-from mappetito_pipeline.ingest.content import InsufficientContentError, is_sufficient
-from mappetito_pipeline.ingest.frames import ClaudeFrameDescriber
-from mappetito_pipeline.ingest.pipeline import import_post, summarize
-from mappetito_pipeline.ingest.sources import (
+from burp.config import Settings, load_env
+from burp.ingest.content import InsufficientContentError, is_sufficient
+from burp.ingest.frames import ClaudeFrameDescriber
+from burp.ingest.pipeline import import_post, summarize
+from burp.ingest.sources import (
     IngestionError,
     SourcePost,
     fetch_instagram,
@@ -27,10 +27,10 @@ from mappetito_pipeline.ingest.sources import (
     from_caption,
     from_screenshots,
 )
-from mappetito_pipeline.ingest.store import IMPORTED_DIR, ImportedRecipe, save
-from mappetito_pipeline.ingest.structure import StructuringError
-from mappetito_pipeline.ingest.transcribe import FasterWhisperTranscriber
-from mappetito_pipeline.loader import load_ingredients
+from burp.ingest.store import IMPORTED_DIR, ImportedRecipe, save
+from burp.ingest.structure import StructuringError
+from burp.ingest.transcribe import FasterWhisperTranscriber
+from burp.loader import load_ingredients
 
 log = logging.getLogger("bot")
 

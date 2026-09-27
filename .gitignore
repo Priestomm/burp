@@ -1,12 +1,11 @@
-node_modules/
-.svelte-kit/
-build/
-dist/
-.wrangler/
-.dev.vars
 .venv/
 __pycache__/
 .pytest_cache/
 .ruff_cache/
 .DS_Store
 .env
+*.db
+# Leftovers of the removed JS app, until they are deleted locally.
+node_modules/
+.svelte-kit/
+build/

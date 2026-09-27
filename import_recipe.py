@@ -14,18 +14,18 @@ from pathlib import Path
 
 import anthropic
 
-from mappetito_pipeline.config import Settings, load_env
-from mappetito_pipeline.ingest.frames import ClaudeFrameDescriber
-from mappetito_pipeline.ingest.pipeline import import_post, summarize
-from mappetito_pipeline.ingest.sources import (
+from burp.config import Settings, load_env
+from burp.ingest.frames import ClaudeFrameDescriber
+from burp.ingest.pipeline import import_post, summarize
+from burp.ingest.sources import (
     SourcePost,
     fetch_instagram,
     from_caption,
     from_screenshots,
 )
-from mappetito_pipeline.ingest.store import IMPORTED_DIR, save
-from mappetito_pipeline.ingest.transcribe import FasterWhisperTranscriber
-from mappetito_pipeline.loader import load_ingredients
+from burp.ingest.store import IMPORTED_DIR, save
+from burp.ingest.transcribe import FasterWhisperTranscriber
+from burp.loader import load_ingredients
 
 
 def parse_args(argv: list[str] | None) -> argparse.Namespace:

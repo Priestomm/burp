@@ -4,8 +4,8 @@ from pathlib import Path
 import httpx
 
 from bot import TelegramApi, handle_update, parse_update
-from mappetito_pipeline.ingest.pipeline import import_post
-from mappetito_pipeline.ingest.sources import IngestionError
+from burp.ingest.pipeline import import_post
+from burp.ingest.sources import IngestionError
 from tests.test_structure import FakeClient, valid_recipe
 
 CAPTIONS = Path(__file__).parent / "fixtures" / "captions"
@@ -37,7 +37,7 @@ def message(text="", user_id=42, photo=None) -> dict:
 
 def importer(client=None):
     client = client or FakeClient(valid_recipe())
-    from mappetito_pipeline.loader import load_ingredients
+    from burp.loader import load_ingredients
 
     ingredients = load_ingredients()
     return lambda post: import_post(post, ingredients, client, "m")
@@ -101,7 +101,7 @@ def test_screenshot_is_downloaded_and_sent_to_frame_analysis(tmp_path):
             seen["images"] = images
             return "Dal tadka: 150 g di lenticchie rosse, 1 cipolla, 2 cucchiai di olio."
 
-    from mappetito_pipeline.loader import load_ingredients
+    from burp.loader import load_ingredients
 
     ingredients = load_ingredients()
     client = FakeClient(valid_recipe())

@@ -12,7 +12,7 @@ from typing import Literal, Self
 import anthropic
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
-from mappetito_pipeline.models import Ingredient
+from burp.models import Ingredient
 
 log = logging.getLogger(__name__)
 
@@ -81,7 +81,7 @@ class StructuringError(RuntimeError):
 
 SYSTEM_PROMPT = """\
 You turn the text of a cooking post (caption, transcript or on-screen text) into one \
-structured recipe for Mappetito, an app of vegetarian and vegan dishes placed on a world map.
+structured recipe for burp!, an app of vegetarian and vegan dishes placed on a world map.
 
 Rules:
 - Use only what the text says. Never invent ingredients, quantities or steps.

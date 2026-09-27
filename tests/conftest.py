@@ -1,7 +1,7 @@
 import pytest
 
-from mappetito_pipeline.loader import load_ingredients
-from mappetito_pipeline.models import RecipeDraft, RecipeIngredient
+from burp.loader import load_ingredients
+from burp.models import RecipeDraft, RecipeIngredient
 
 
 @pytest.fixture(scope="session")

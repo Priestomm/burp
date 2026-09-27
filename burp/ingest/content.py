@@ -11,9 +11,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from mappetito_pipeline.ingest.frames import FrameDescriber, extract_frames
-from mappetito_pipeline.ingest.sources import SourcePost
-from mappetito_pipeline.ingest.transcribe import Transcriber
+from burp.ingest.frames import FrameDescriber, extract_frames
+from burp.ingest.sources import SourcePost
+from burp.ingest.transcribe import Transcriber
 
 log = logging.getLogger(__name__)
 
@@ -92,6 +92,6 @@ def extract_content(
 def _collect_images(post: SourcePost, frame_count: int) -> list[Path]:
     images = list(post.screenshot_paths)
     if post.video_path:
-        out_dir = Path(tempfile.mkdtemp(prefix="mappetito-frames-"))
+        out_dir = Path(tempfile.mkdtemp(prefix="burp-frames-"))
         images += extract_frames(post.video_path, out_dir, frame_count)
     return images

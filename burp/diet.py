@@ -2,7 +2,7 @@
 
 from collections.abc import Mapping
 
-from mappetito_pipeline.models import Diet, Ingredient, Recipe, RecipeBase, RecipeDraft
+from burp.models import Diet, Ingredient, Recipe, RecipeBase, RecipeDraft
 
 
 class DietError(ValueError):
