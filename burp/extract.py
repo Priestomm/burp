@@ -57,30 +57,32 @@ def extract_content(
 ) -> ExtractedContent:
     ok, reason = is_sufficient(post.caption)
     if ok:
-        log.info("content source: caption (sufficient)")
-        return ExtractedContent(post.caption, "caption", "")
-    log.info("caption not sufficient: %s", reason)
+        return _chosen(ExtractedContent(post.caption, "caption", ""))
     reasons = [f"caption: {reason}"]
 
     if post.video_path and transcriber:
-        transcript = transcriber.transcribe(post.video_path)
-        text = f"{post.caption}\n\n{transcript}".strip()
-        ok, reason = is_sufficient(text)
-        if ok:
-            log.info("content source: transcript (caption was insufficient)")
-            return ExtractedContent(text, "transcript", "; ".join(reasons))
-        log.info("transcript not sufficient: %s", reason)
-        reasons.append(f"transcript: {reason}")
+        try:
+            transcript = transcriber.transcribe(post.video_path)
+        except RuntimeError as error:  # e.g. faster-whisper not installed
+            reasons.append(f"transcript: failed ({error})")
+        else:
+            text = f"{post.caption}\n\n{transcript}".strip()
+            ok, reason = is_sufficient(text)
+            if ok:
+                return _chosen(ExtractedContent(text, "transcript", "; ".join(reasons)))
+            reasons.append(f"transcript: {reason}")
     elif post.video_path:
         reasons.append("transcript: skipped, no transcriber available")
+    else:
+        reasons.append("transcript: skipped, no video")
 
     if describer:
-        images = _collect_images(post, frame_count)
+        images = _collect_images(post, frame_count, reasons)
         if images:
             description = describer.describe(images)
-            log.info("content source: frames (%d images analysed)", len(images))
             text = f"{post.caption}\n\n{description}".strip()
-            return ExtractedContent(text, "frames", "; ".join(reasons))
+            reasons.append(f"frames: {len(images)} images analysed")
+            return _chosen(ExtractedContent(text, "frames", "; ".join(reasons)))
         reasons.append("frames: no video or screenshots to analyse")
 
     raise InsufficientContentError(
@@ -89,9 +91,17 @@ def extract_content(
     )
 
 
-def _collect_images(post: SourcePost, frame_count: int) -> list[Path]:
+def _chosen(content: ExtractedContent) -> ExtractedContent:
+    log.info("content source: %s (%s)", content.source, content.reason or "caption sufficient")
+    return content
+
+
+def _collect_images(post: SourcePost, frame_count: int, reasons: list[str]) -> list[Path]:
     images = list(post.screenshot_paths)
     if post.video_path:
         out_dir = Path(tempfile.mkdtemp(prefix="burp-frames-"))
-        images += extract_frames(post.video_path, out_dir, frame_count)
+        try:
+            images += extract_frames(post.video_path, out_dir, frame_count)
+        except RuntimeError as error:  # e.g. PyAV not installed
+            reasons.append(f"frames: could not extract video frames ({error})")
     return images

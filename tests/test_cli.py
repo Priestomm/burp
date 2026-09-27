@@ -14,7 +14,7 @@ def test_caption_file_is_imported_and_saved(tmp_path, capsys, monkeypatch):
     code = main(
         [
             "--caption-file",
-            str(CAPTIONS / "vegan_dal.txt"),
+            str(CAPTIONS / "completa.txt"),
             "--url",
             "https://www.instagram.com/p/abc/",
         ],
@@ -29,12 +29,12 @@ def test_caption_file_is_imported_and_saved(tmp_path, capsys, monkeypatch):
     assert saved["provenance"]["source"] == "caption"
     assert "ready" in capsys.readouterr().out
     # the caption reached the model
-    assert "lenticchie" in client.calls[0]["messages"][0]["content"]
+    assert "guanciale" in client.calls[0]["messages"][0]["content"]
 
 
 def test_dry_run_saves_nothing(tmp_path, capsys):
     code = main(
-        ["--caption", (CAPTIONS / "vegan_dal.txt").read_text(), "--dry-run"],
+        ["--caption", (CAPTIONS / "completa.txt").read_text(), "--dry-run"],
         client=FakeClient(valid_recipe()),
         output_dir=tmp_path,
     )
@@ -57,7 +57,7 @@ def test_low_confidence_recipe_is_saved_as_needs_review(tmp_path, capsys):
         }
     )
     code = main(
-        ["--caption-file", str(CAPTIONS / "fusion_bibimbap_tacos.txt")],
+        ["--caption-file", str(CAPTIONS / "quantita_mancanti.txt")],
         client=FakeClient(fusion),
         output_dir=tmp_path,
     )
@@ -69,7 +69,7 @@ def test_low_confidence_recipe_is_saved_as_needs_review(tmp_path, capsys):
 
 def test_empty_caption_without_fallback_asks_for_manual_input(tmp_path, capsys):
     code = main(
-        ["--caption-file", str(CAPTIONS / "emoji_only.txt")],
+        ["--caption-file", str(CAPTIONS / "vuota.txt")],
         client=FakeClient(),
         output_dir=tmp_path,
     )

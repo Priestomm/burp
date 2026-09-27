@@ -54,7 +54,7 @@ def test_parse_update_ignores_non_messages():
 
 def test_pasted_caption_is_imported_and_saved(tmp_path):
     sent: list[dict] = []
-    text = (CAPTIONS / "vegan_dal.txt").read_text()
+    text = (CAPTIONS / "completa.txt").read_text()
     handle_update(message(text), make_api(sent), ALLOWED, importer(), output_dir=tmp_path)
     assert (tmp_path / "in-dal-tadka.json").exists()
     assert sent[0]["chat_id"] == 7
