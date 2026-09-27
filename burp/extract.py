@@ -26,6 +26,24 @@ QUANTITY = re.compile(
     re.IGNORECASE,
 )
 NOISE = re.compile(r"#\w+|@\w+|https?://\S+")
+# A procedure: a heading, or at least MIN_STEP_VERBS different cooking verbs. Italian verbs are
+# matched as stem + ending (cuoci, cuocete, cuocere, cuociamo...) so that nouns such as
+# "impasto" or "tagliatelle" do not count.
+STEPS_HEADING = re.compile(
+    r"\b(?:procedimento|preparazione|come si fa|istruzioni|method|steps|directions|"
+    r"instructions)\b",
+    re.IGNORECASE,
+)
+STEP_VERB = re.compile(
+    r"\b(?:(?P<it>cuoc|aggiung|mescol|vers|tagli|rosol|inforn|scol|frull|impast|incorpor|"
+    r"sbatt|soffrigg|frigg|lasci|scald|sciogl|trit|condisc|stend|copr|mett|unisc|spegn|"
+    r"sfum|lav|sbucci|grattugi|amalgam|riduc|pel)"
+    r"(?:a|e|i|ate|ete|ite|are|ere|ire|iamo|ando|endo)(?:l[aeio]|ne)?"
+    r"|(?P<en>cook|add|mix|stir|bake|heat|pour|chop|boil|fry|whisk|simmer|combine|blend|"
+    r"preheat|drain|slice|knead|roast|saut[eé])(?:s|ed|ing)?)\b",
+    re.IGNORECASE,
+)
+MIN_STEP_VERBS = 2
 
 
 class InsufficientContentError(RuntimeError):
@@ -46,7 +64,16 @@ def is_sufficient(text: str) -> tuple[bool, str]:
         return False, f"only {len(words)} words of text (need {MIN_WORDS})"
     if not QUANTITY.search(text):
         return False, "no quantities or ingredient list found"
+    if not has_steps(text):
+        return False, "no steps found (only ingredients)"
     return True, ""
+
+
+def has_steps(text: str) -> bool:
+    if STEPS_HEADING.search(text):
+        return True
+    verbs = {(m["it"] or m["en"]).lower() for m in STEP_VERB.finditer(text)}
+    return len(verbs) >= MIN_STEP_VERBS
 
 
 def extract_content(

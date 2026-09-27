@@ -12,7 +12,16 @@ from burp.extract import (
 from burp.ingest import SourcePost
 
 CAPTIONS = Path(__file__).parent / "fixtures" / "captions"
-FULL_RECIPE = "Ingredienti: " + " ".join(f"{n} g di farina bianca" for n in range(10, 20))
+FULL_RECIPE = (
+    "Ingredienti: "
+    + " ".join(f"{n} g di farina bianca" for n in range(10, 20))
+    + ". Mescola la farina con l'acqua, impasta e cuoci in forno."
+)
+INGREDIENTS_ONLY = (
+    "Gnocchi alla zucca! Ingredienti per quattro persone: 1 kg di zucca delica, "
+    "300 g di farina, 1 uovo, 50 g di parmigiano grattugiato, noce moscata, sale e pepe q.b. "
+    "Salvala e fammi sapere se la provi, ci vediamo nel prossimo video con un'altra ricetta!"
+)
 
 
 def caption(name: str) -> str:
@@ -132,3 +141,37 @@ def test_missing_frame_extractor_still_uses_the_screenshots(monkeypatch, tmp_pat
     result = extract_content(post, FakeTranscriber("musica"), describer)
     assert describer.calls == [[shot]]
     assert "could not extract video frames" in result.reason
+
+
+def test_ingredients_without_steps_are_not_enough():
+    ok, reason = is_sufficient(INGREDIENTS_ONLY)
+    assert not ok
+    assert "no steps" in reason
+
+
+@pytest.mark.parametrize(
+    "steps",
+    [
+        "Procedimento: tutto in padella.",  # a heading
+        "Cuociamo la zucca e poi aggiungiamo la farina.",  # two verbs, 1st person plural
+        "Rosolate la cipolla, versate il brodo.",
+        "Cook the pumpkin, then add the flour.",
+    ],
+)
+def test_a_procedure_makes_the_caption_sufficient(steps):
+    assert is_sufficient(f"{INGREDIENTS_ONLY} {steps}") == (True, "")
+
+
+def test_nouns_that_look_like_verbs_do_not_count_as_steps():
+    # "impasto" and "tagliatelle" are not instructions.
+    ok, _ = is_sufficient(f"{INGREDIENTS_ONLY} Per l'impasto: tagliatelle all'uovo.")
+    assert not ok
+
+
+def test_caption_without_steps_falls_back_to_the_transcript():
+    post = SourcePost(caption=INGREDIENTS_ONLY, video_path=Path("v.mp4"))
+    spoken = "Allora, cuociamo la zucca in forno, poi schiacciamola e aggiungiamo la farina."
+    result = extract_content(post, FakeTranscriber(spoken), FakeDescriber())
+    assert result.source == "transcript"
+    assert "caption: no steps found" in result.reason
+    assert INGREDIENTS_ONLY in result.text and spoken in result.text

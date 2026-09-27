@@ -17,7 +17,7 @@ link / caption incollata / screenshot
 ```
 
 - **Ingestion.** I link vengono ridotti a una forma canonica: senza `?igsh=…`, senza il nome dell'autore davanti e con `/reels/` riscritto in `/reel/`. Da yt-dlp si legge anche l'`author_handle`.
-- **Estrazione a costo crescente.** Ogni fonte si usa solo se la precedente non basta. Una caption "basta" se ha almeno 25 parole e delle quantità o un elenco di ingredienti. Se Whisper o PyAV non sono installati, si passa allo stadio successivo. Il log dice quale fonte è stata usata e perché, e fonte e motivo sono salvati con la ricetta.
+- **Estrazione a costo crescente.** Ogni fonte si usa solo se la precedente non basta. Una caption "basta" se ha almeno 25 parole, delle quantità o un elenco di ingredienti **e** un procedimento (un titolo come "Procedimento" o almeno due verbi di cucina diversi): se ci sono solo gli ingredienti, si cercano i passaggi nell'audio e poi nei frame. Se Whisper o PyAV non sono installati, si passa allo stadio successivo. Il log dice quale fonte è stata usata e perché, e fonte e motivo sono salvati con la ricetta.
 - **Strutturazione.** Claude compila lo schema qui sotto, sempre in italiano (anche se il post è in inglese); solo `original_text` resta com'era. Poi alcune regole deterministiche controllano la risposta:
   - i nomi degli ingredienti vengono ricondotti al catalogo canonico (`data/ingredients.json`), così "pomodori", "tomato" e "pomodoro" diventano uno solo;
   - se manca una quantità (e non è q.b.) o mancano i passaggi, la ricetta è `partial`, anche se il modello l'aveva dichiarata completa;
