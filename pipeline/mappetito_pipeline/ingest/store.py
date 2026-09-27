@@ -1,6 +1,6 @@
 """Persistence of imported recipes: one JSON file per recipe under `data/imported/`.
 
-A recipe is `ready` (published by build.py) or `needs_review` (kept for a human to fix and
+A recipe is `ready` or `needs_review` (kept for a human to fix and
 flip to `ready`). The raw extraction and its provenance are stored with it.
 """
 
