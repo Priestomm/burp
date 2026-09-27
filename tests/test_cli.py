@@ -1,7 +1,6 @@
 import json
 from pathlib import Path
 
-from burp.structure import ExtractedRecipe
 from import_recipe import main
 from tests.test_structure import FakeClient, valid_recipe
 
@@ -22,12 +21,10 @@ def test_caption_file_is_imported_and_saved(tmp_path, capsys, monkeypatch):
         output_dir=tmp_path,
     )
     assert code == 0
-    saved = json.loads((tmp_path / "in-dal-tadka.json").read_text())
-    assert saved["status"] == "ready"
-    assert saved["draft"]["country_code"] == "356"
-    assert saved["draft"]["source"] == "https://www.instagram.com/p/abc/"
-    assert saved["provenance"]["source"] == "caption"
-    assert "ready" in capsys.readouterr().out
+    saved = json.loads((tmp_path / "dal-tadka.json").read_text())
+    assert saved["recipe"]["source_url"] == "https://www.instagram.com/p/abc/"
+    assert saved["content_source"] == "caption"
+    assert "completa" in capsys.readouterr().out
     # the caption reached the model
     assert "guanciale" in client.calls[0]["messages"][0]["content"]
 
@@ -43,28 +40,20 @@ def test_dry_run_saves_nothing(tmp_path, capsys):
     assert "dry run" in capsys.readouterr().out
 
 
-def test_low_confidence_recipe_is_saved_as_needs_review(tmp_path, capsys):
-    fusion = ExtractedRecipe.model_validate(
-        valid_recipe().model_dump()
-        | {
-            "title": "Bibimbap tacos",
-            "origin": {
-                "country_iso2": "KR",
-                "cuisine": "Korean-Mexican fusion",
-                "confidence": 0.35,
-                "reasoning": "Two cuisines mixed.",
-            },
-        }
+def test_partial_recipe_is_saved_and_reported(tmp_path, capsys):
+    partial = valid_recipe(
+        title="Pasta zucchine e menta",
+        ingredients=[{"canonical_name": "pasta", "original_text": "pasta corta"}],
     )
     code = main(
         ["--caption-file", str(CAPTIONS / "quantita_mancanti.txt")],
-        client=FakeClient(fusion),
+        client=FakeClient(partial),
         output_dir=tmp_path,
     )
     assert code == 0
-    saved = json.loads((tmp_path / "kr-bibimbap-tacos.json").read_text())
-    assert saved["status"] == "needs_review"
-    assert "needs_review" in capsys.readouterr().out
+    saved = json.loads((tmp_path / "pasta-zucchine-e-menta.json").read_text())
+    assert saved["recipe"]["completeness"]["status"] == "partial"
+    assert "parziale, manca: quantità di pasta" in capsys.readouterr().out
 
 
 def test_empty_caption_without_fallback_asks_for_manual_input(tmp_path, capsys):

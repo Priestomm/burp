@@ -4,6 +4,7 @@ from pathlib import Path
 import httpx
 
 from bot import TelegramApi, handle_update, parse_update
+from burp.catalog import SynonymIndex, load_ingredients
 from burp.ingest import IngestionError
 from burp.pipeline import import_post
 from tests.test_structure import FakeClient, valid_recipe
@@ -37,10 +38,8 @@ def message(text="", user_id=42, photo=None) -> dict:
 
 def importer(client=None):
     client = client or FakeClient(valid_recipe())
-    from burp.loader import load_ingredients
-
-    ingredients = load_ingredients()
-    return lambda post: import_post(post, ingredients, client, "m")
+    catalog = SynonymIndex(load_ingredients())
+    return lambda post: import_post(post, catalog, client, "m")
 
 
 def test_parse_update_takes_the_largest_photo():
@@ -56,9 +55,9 @@ def test_pasted_caption_is_imported_and_saved(tmp_path):
     sent: list[dict] = []
     text = (CAPTIONS / "completa.txt").read_text()
     handle_update(message(text), make_api(sent), ALLOWED, importer(), output_dir=tmp_path)
-    assert (tmp_path / "in-dal-tadka.json").exists()
+    assert (tmp_path / "dal-tadka.json").exists()
     assert sent[0]["chat_id"] == 7
-    assert "Dal tadka" in sent[0]["text"] and "ready" in sent[0]["text"]
+    assert "Dal tadka" in sent[0]["text"] and "completa" in sent[0]["text"]
 
 
 def test_unauthorized_user_gets_no_answer_and_nothing_runs(tmp_path):
@@ -101,17 +100,15 @@ def test_screenshot_is_downloaded_and_sent_to_frame_analysis(tmp_path):
             seen["images"] = images
             return "Dal tadka: 150 g di lenticchie rosse, 1 cipolla, 2 cucchiai di olio."
 
-    from burp.loader import load_ingredients
-
-    ingredients = load_ingredients()
+    catalog = SynonymIndex(load_ingredients())
     client = FakeClient(valid_recipe())
 
     def run_import(post):
-        return import_post(post, ingredients, client, "m", describer=Describer())
+        return import_post(post, catalog, client, "m", describer=Describer())
 
     handle_update(message(photo="large"), make_api(sent), ALLOWED, run_import, output_dir=tmp_path)
     assert seen["images"][0].read_bytes() == b"jpeg-bytes"
-    assert (tmp_path / "in-dal-tadka.json").exists()
+    assert (tmp_path / "dal-tadka.json").exists()
     assert "fonte: frames" in sent[0]["text"]
 
 

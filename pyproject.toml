@@ -5,7 +5,6 @@ requires-python = ">=3.13"
 dependencies = [
     "anthropic>=1.7.0",
     "httpx>=0.28.1",
-    "pycountry>=26.2.16",
     "pydantic>=2.13.5",
 ]
 

@@ -10,8 +10,8 @@ import anthropic
 FRAME_PROMPT = (
     "These images come from a cooking video or are screenshots of a recipe post. "
     "Transcribe every visible ingredient with its quantity, and every recipe step, "
-    "including any on-screen text. Also note the dish name and any hint of its cuisine "
-    "or country. Answer with plain text only; do not invent what is not visible."
+    "including any on-screen text. Also note the dish name and its cuisine if it is clear."
+    " Answer with plain text only; do not invent what is not visible."
 )
 
 

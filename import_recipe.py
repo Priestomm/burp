@@ -14,6 +14,7 @@ from pathlib import Path
 
 import anthropic
 
+from burp.catalog import SynonymIndex, load_ingredients
 from burp.config import Settings, load_env
 from burp.frames import ClaudeFrameDescriber
 from burp.ingest import (
@@ -22,7 +23,6 @@ from burp.ingest import (
     from_caption,
     from_screenshots,
 )
-from burp.loader import load_ingredients
 from burp.pipeline import import_post, summarize
 from burp.store import IMPORTED_DIR, save
 from burp.transcribe import FasterWhisperTranscriber
@@ -70,7 +70,7 @@ def main(
         post = build_post(args, settings)
         recipe = import_post(
             post,
-            load_ingredients(),
+            SynonymIndex(load_ingredients()),
             client,
             settings.model,
             transcriber=FasterWhisperTranscriber(settings.whisper_model),

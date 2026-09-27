@@ -1,12 +1,14 @@
-from burp.reconcile import reconcile
-from burp.store import Provenance, load_all, ready_drafts, save
-from tests.test_reconcile import recipe
+from burp.models import ImportedRecipe
+from burp.store import load_all, save, slugify
+from tests.test_structure import valid_recipe
 
 
-def test_save_and_load_round_trip(tmp_path, ingredients):
-    imported = reconcile(recipe(), ingredients, Provenance(source="transcript", reason="x"))
+def test_save_and_load_round_trip(tmp_path):
+    imported = ImportedRecipe(
+        recipe=valid_recipe(), content_source="transcript", content_reason="caption: empty"
+    )
     path = save(imported, tmp_path)
-    assert path.name == "in-dal-tadka.json"
+    assert path.name == "dal-tadka.json"
     assert load_all(tmp_path) == [imported]
 
 
@@ -14,17 +16,5 @@ def test_load_all_of_a_missing_directory_is_empty(tmp_path):
     assert load_all(tmp_path / "nope") == []
 
 
-def test_only_ready_recipes_are_published(tmp_path, ingredients):
-    ready = reconcile(recipe(), ingredients)
-    review = reconcile(_low_confidence(), ingredients)
-    save(ready, tmp_path)
-    save(review, tmp_path)
-    assert review.status == "needs_review"
-    assert [d.id for d in ready_drafts(tmp_path)] == [ready.id]
-
-
-def _low_confidence():
-    return recipe(
-        title="Fusion",
-        origin={"country_iso2": "KR", "cuisine": "?", "confidence": 0.2, "reasoning": "?"},
-    )
+def test_slugify_strips_accents():
+    assert slugify("Pasta è ceci!") == "pasta-e-ceci"

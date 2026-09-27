@@ -1,50 +1,54 @@
-"""The whole import: post -> content -> structured recipe -> reconciled, storable recipe.
+"""The whole import: post -> content -> structured recipe.
 
 Shared by the CLI and the Telegram bot so both behave the same.
 """
 
-from collections.abc import Mapping
-
 import anthropic
 
+from burp.catalog import SynonymIndex
 from burp.extract import extract_content
 from burp.frames import FrameDescriber
 from burp.ingest import SourcePost
-from burp.models import Ingredient
-from burp.reconcile import reconcile
-from burp.store import ImportedRecipe, Provenance
+from burp.models import ImportedRecipe
 from burp.structure import structure_recipe
 from burp.transcribe import Transcriber
+
+DIET_LABELS = {
+    "vegan": "vegana",
+    "vegetarian": "vegetariana",
+    "neither": "né vegana né vegetariana",
+}
 
 
 def import_post(
     post: SourcePost,
-    ingredients: Mapping[str, Ingredient],
+    catalog: SynonymIndex,
     client: anthropic.Anthropic,
     model: str,
     transcriber: Transcriber | None = None,
     describer: FrameDescriber | None = None,
 ) -> ImportedRecipe:
     content = extract_content(post, transcriber, describer)
-    extracted = structure_recipe(content.text, ingredients, client, model, source_url=post.url)
-    return reconcile(
-        extracted, ingredients, Provenance(source=content.source, reason=content.reason)
+    recipe = structure_recipe(
+        content.text, catalog, client, model, source_url=post.url, author_handle=post.author_handle
+    )
+    return ImportedRecipe(
+        recipe=recipe, content_source=content.source, content_reason=content.reason
     )
 
 
-def summarize(recipe: ImportedRecipe) -> str:
+def summarize(imported: ImportedRecipe) -> str:
     """Short human-readable outcome, used by the CLI and the bot."""
-    draft = recipe.draft
-    lines = [f"{recipe.extracted.title} ({recipe.id})"]
-    if draft:
-        lines.append(f"paese {recipe.extracted.origin.country_iso2} ({draft.country_code})")
-    lines.append(f"dieta: {recipe.diet or 'da verificare'}")
-    if recipe.draft and recipe.draft.adaptation:
-        lines.append(f"veganizzata: {recipe.draft.adaptation.changes}")
-    lines.append(f"fonte: {recipe.provenance.source}")
-    if recipe.status == "ready":
-        lines.append("stato: ready, comparirà sulla mappa al prossimo build")
+    recipe = imported.recipe
+    lines = [recipe.title]
+    if recipe.author_handle:
+        lines.append(f"di @{recipe.author_handle}")
+    tags = [recipe.tags.cuisine, recipe.tags.course, DIET_LABELS[recipe.tags.diet]]
+    lines.append(" · ".join(t for t in tags if t))
+    lines.append(f"{len(recipe.ingredients)} ingredienti, {len(recipe.steps)} passaggi")
+    if recipe.completeness.status == "complete":
+        lines.append("completa")
     else:
-        lines.append("stato: needs_review")
-        lines += [f"- {issue}" for issue in recipe.issues]
+        lines.append("parziale, manca: " + "; ".join(recipe.completeness.missing))
+    lines.append(f"fonte: {imported.content_source}")
     return "\n".join(lines)

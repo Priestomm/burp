@@ -15,6 +15,7 @@ from pathlib import Path
 import anthropic
 import httpx
 
+from burp.catalog import SynonymIndex, load_ingredients
 from burp.config import Settings, load_env
 from burp.extract import InsufficientContentError, is_sufficient
 from burp.frames import ClaudeFrameDescriber
@@ -26,9 +27,9 @@ from burp.ingest import (
     from_caption,
     from_screenshots,
 )
-from burp.loader import load_ingredients
+from burp.models import ImportedRecipe
 from burp.pipeline import import_post, summarize
-from burp.store import IMPORTED_DIR, ImportedRecipe, save
+from burp.store import IMPORTED_DIR, save
 from burp.structure import StructuringError
 from burp.transcribe import FasterWhisperTranscriber
 
@@ -153,12 +154,12 @@ def main() -> int:
         return 2
 
     client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
-    ingredients = load_ingredients()
+    catalog = SynonymIndex(load_ingredients())
     transcriber = FasterWhisperTranscriber(settings.whisper_model)
     describer = ClaudeFrameDescriber(client, settings.model)
 
     def run_import(post: SourcePost) -> ImportedRecipe:
-        return import_post(post, ingredients, client, settings.model, transcriber, describer)
+        return import_post(post, catalog, client, settings.model, transcriber, describer)
 
     api = TelegramApi(settings.telegram_bot_token)
     log.info("bot started, waiting for messages")

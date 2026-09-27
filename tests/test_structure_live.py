@@ -5,6 +5,7 @@ behaviour that offline tests cannot: that the model really follows the schema an
 """
 
 import os
+import re
 from pathlib import Path
 
 import anthropic
@@ -12,10 +13,11 @@ import pytest
 
 from burp.config import DEFAULT_MODEL
 from burp.extract import is_sufficient
-from burp.reconcile import reconcile
 from burp.structure import structure_recipe
 
 CAPTIONS = Path(__file__).parent / "fixtures" / "captions"
+ITALIAN = re.compile(r"\b(il|la|le|gli|di|e|con|per|nel|nella|fino|aggiungi|cuoci)\b")
+ENGLISH = re.compile(r"\b(the|and|with|until|add|cook|stir|heat)\b", re.IGNORECASE)
 
 pytestmark = [
     pytest.mark.live,
@@ -24,41 +26,44 @@ pytestmark = [
 
 
 @pytest.fixture(scope="module")
-def structure(ingredients):
+def structure(catalog):
     client = anthropic.Anthropic()
     model = os.environ.get("BURP_MODEL", DEFAULT_MODEL)
 
     def run(name: str):
         text = (CAPTIONS / f"{name}.txt").read_text()
-        extracted = structure_recipe(text, ingredients, client, model)
-        return extracted, reconcile(extracted, ingredients)
+        return structure_recipe(text, catalog, client, model)
 
     return run
 
 
-def test_vegan_dal_is_india_and_vegan(structure):
-    extracted, result = structure("vegan_dal")
-    assert extracted.origin.country_iso2 == "IN"
-    assert extracted.diet == "vegan" and extracted.veganized_version is None
-    assert result.draft.country_code == "356"
-    assert result.diet == "vegan"
+def test_complete_caption_is_complete_and_not_vegetarian(structure):
+    recipe = structure("completa")
+    assert recipe.completeness.status == "complete", recipe.completeness.missing
+    assert recipe.tags.diet == "neither"
+    assert recipe.tags.course == "primo"
+    assert recipe.servings == 2 and recipe.time_minutes == 25
+    assert "guanciale" in [i.canonical_name for i in recipe.ingredients]
 
 
-def test_carbonara_is_italian_non_vegetarian_and_gets_veganized(structure):
-    extracted, result = structure("carbonara")
-    assert extracted.origin.country_iso2 == "IT"
-    assert extracted.diet == "neither"
-    assert extracted.veganized_version and extracted.veganized_version.substitutions
-    assert result.draft.adaptation is not None
-    assert result.diet in {"vegan", "vegetarian"}  # the published variant has no meat
+def test_missing_quantities_are_not_invented(structure):
+    recipe = structure("quantita_mancanti")
+    assert recipe.completeness.status == "partial"
+    pasta = next(i for i in recipe.ingredients if "pasta" in i.canonical_name)
+    assert pasta.quantity is None
+    assert any("pasta" in item for item in recipe.completeness.missing)
 
 
-def test_ambiguous_fusion_is_not_given_a_confident_country(structure):
-    extracted, result = structure("fusion_bibimbap_tacos")
-    assert extracted.origin.confidence < 0.6
-    assert result.status == "needs_review"
+def test_english_caption_is_translated_to_italian(structure):
+    recipe = structure("inglese")
+    steps = " ".join(recipe.steps)
+    assert ITALIAN.search(steps) and not ENGLISH.search(steps), steps
+    assert not ENGLISH.search(recipe.title), recipe.title
+    assert recipe.tags.diet == "vegan"
+    assert recipe.servings == 4
+    assert "ceci" in [i.canonical_name for i in recipe.ingredients]
 
 
-def test_emoji_only_caption_is_rejected_before_any_api_call():
-    ok, _ = is_sufficient((CAPTIONS / "emoji_only.txt").read_text())
+def test_empty_caption_is_rejected_before_any_api_call():
+    ok, _ = is_sufficient((CAPTIONS / "vuota.txt").read_text())
     assert not ok

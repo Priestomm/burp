@@ -1,6 +1,6 @@
 import pytest
 
-from burp.matching import SynonymIndex, normalize_name
+from burp.catalog import SynonymIndex, normalize_name
 
 
 @pytest.fixture(scope="module")
