@@ -29,7 +29,8 @@ from burp.ingest import (
 )
 from burp.library import Library
 from burp.models import ImportedRecipe
-from burp.pipeline import import_post, summarize
+from burp.pipeline import import_post
+from burp.render import full_text, one_line, summarize
 from burp.structure import StructuringError
 from burp.transcribe import FasterWhisperTranscriber
 
@@ -37,8 +38,19 @@ log = logging.getLogger("bot")
 
 HELP = (
     "Inoltrami il link di un post o reel Instagram, oppure incolla la caption, "
-    "oppure mandami uno screenshot della ricetta."
+    "oppure mandami uno screenshot della ricetta.\n\n"
+    "Per consultare la libreria:\n"
+    "/cerca parole – ricette con quelle parole nel titolo, nei tag o negli ingredienti "
+    "(es. /cerca vegana ceci); senza parole, le ultime salvate\n"
+    "/ricetta numero – la ricetta completa (es. /ricetta 3)"
 )
+COMMANDS = [
+    ("cerca", "cerca per titolo, tag o ingrediente"),
+    ("ricetta", "mostra una ricetta dal suo numero"),
+    ("aiuto", "cosa posso fare"),
+]
+MAX_RESULTS = 20
+MAX_MESSAGE = 4000  # Telegram's limit is 4096 characters
 
 
 @dataclass
@@ -65,7 +77,15 @@ class TelegramApi:
         return self._call("getUpdates", offset=offset, timeout=timeout)
 
     def send_message(self, chat_id: int, text: str) -> None:
-        self._call("sendMessage", chat_id=chat_id, text=text)
+        for chunk in split_message(text):
+            self._call("sendMessage", chat_id=chat_id, text=chunk)
+
+    def set_commands(self, commands: list[tuple[str, str]]) -> None:
+        """The command menu Telegram shows next to the text field."""
+        self._call(
+            "setMyCommands",
+            commands=[{"command": name, "description": text} for name, text in commands],
+        )
 
     def download_file(self, file_id: str, dest: Path) -> Path:
         file_path = self._call("getFile", file_id=file_id)["file_path"]
@@ -73,6 +93,21 @@ class TelegramApi:
         response.raise_for_status()
         dest.write_bytes(response.content)
         return dest
+
+
+def split_message(text: str, limit: int = MAX_MESSAGE) -> list[str]:
+    """Split on line breaks so that every chunk fits in one Telegram message."""
+    chunks: list[str] = []
+    current = ""
+    for line in text.splitlines(keepends=True):
+        for start in range(0, len(line), limit):  # an overlong line is cut
+            piece = line[start : start + limit]
+            if len(current) + len(piece) > limit:
+                chunks.append(current)
+                current = ""
+            current += piece
+    chunks.append(current)
+    return [chunk.rstrip("\n") for chunk in chunks if chunk.strip()]
 
 
 def parse_update(update: dict) -> Incoming | None:
@@ -115,6 +150,9 @@ def handle_update(
     if not message.text.strip() and not message.photo_file_id:
         api.send_message(message.chat_id, HELP)
         return
+    if message.text.startswith("/") and not message.photo_file_id:
+        api.send_message(message.chat_id, run_command(message.text, library))
+        return
     url = find_instagram_url(message.text)
     # Checked before downloading anything or calling the model: a duplicate costs nothing.
     if url and (existing := library.find_by_url(url)):
@@ -136,6 +174,28 @@ def handle_update(
         status = f"Salvata come #{saved.id}." if created else f"Già in libreria (#{saved.id})."
         reply = f"{summarize(imported)}\n\n{status}"
     api.send_message(message.chat_id, reply)
+
+
+def run_command(text: str, library: Library) -> str:
+    """Answer /cerca, /ricetta and /aiuto (or /start, the first message Telegram sends)."""
+    command, _, argument = text.strip().partition(" ")
+    command = command[1:].split("@")[0].lower()  # "/cerca@burp_bot" in group chats
+    argument = argument.strip()
+    if command == "cerca":
+        results = library.search(text=argument)
+        if not results:
+            return f"Nessuna ricetta trovata per «{argument}»." if argument else "Libreria vuota."
+        lines = [one_line(saved, pad=False) for saved in results[:MAX_RESULTS]]
+        if len(results) > MAX_RESULTS:
+            lines.append(f"… e altre {len(results) - MAX_RESULTS}: aggiungi qualche parola.")
+        return "\n".join([*lines, "", "Apri una ricetta con /ricetta numero."])
+    if command == "ricetta":
+        number = argument.lstrip("#")
+        if not number.isdigit():
+            return "Scrivi il numero della ricetta, es. /ricetta 3 (lo trovi con /cerca)."
+        saved = library.get(int(number))
+        return full_text(saved) if saved else f"Non c'è nessuna ricetta #{number}."
+    return HELP
 
 
 def poll(api: TelegramApi, handler: Callable[[dict], None]) -> None:
@@ -170,6 +230,7 @@ def main() -> int:
         return import_post(post, catalog, client, settings.model, transcriber, describer)
 
     api = TelegramApi(settings.telegram_bot_token)
+    api.set_commands(COMMANDS)
     log.info("bot started, waiting for messages")
     try:
         poll(

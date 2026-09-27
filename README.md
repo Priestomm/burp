@@ -107,6 +107,14 @@ uv run burp bot
 
 Inoltra al bot un link, incolla una caption o mandagli uno screenshot. Risponde con titolo, tag, completezza, fonte usata e numero nella libreria. Se il link è già in libreria te lo dice e non rifà niente. Il bot risponde solo agli id in `TELEGRAM_ALLOWED_USER_IDS`.
 
+Per consultare la libreria dal telefono (i comandi compaiono anche nel menu di Telegram):
+
+| Comando | Cosa fa |
+| --- | --- |
+| `/cerca vegana ceci` | ricette in cui **ogni parola** compare nel titolo, nei tag (cucina, portata, dieta) o negli ingredienti; senza parole mostra le ultime salvate |
+| `/ricetta 3` | la ricetta completa: ingredienti con le righe originali, procedimento, cosa manca |
+| `/aiuto` | cosa sa fare il bot |
+
 ## Test
 
 ```sh

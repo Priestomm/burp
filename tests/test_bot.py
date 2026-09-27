@@ -137,3 +137,77 @@ def test_a_link_already_in_the_library_is_not_imported_again(library, monkeypatc
     handle_update(message(link), make_api(sent), ALLOWED, must_not_run, library)
     assert "già nella tua libreria (#1)" in sent[1]["text"]
     assert len(library.search()) == 1
+
+
+def fill(library):
+    from burp.models import ImportedRecipe
+    from tests.test_structure import ingredient
+
+    for recipe in (
+        valid_recipe(title="Pasta e ceci", tags={"course": "primo", "diet": "vegan"}),
+        valid_recipe(
+            title="Carbonara",
+            ingredients=[ingredient("pecorino romano", "50 g di pecorino", 50, "g")],
+            tags={"cuisine": "italiana", "course": "primo", "diet": "neither"},
+        ),
+    ):
+        library.add(ImportedRecipe(recipe=recipe, content_source="caption"))
+
+
+def command(text: str, library) -> list[str]:
+    sent: list[dict] = []
+
+    def must_not_import(post):
+        raise AssertionError("a command must never be imported as a caption")
+
+    handle_update(message(text), make_api(sent), ALLOWED, must_not_import, library)
+    return [m["text"] for m in sent]
+
+
+def test_cerca_lists_matching_recipes(library):
+    fill(library)
+    [reply] = command("/cerca pecorino", library)
+    assert reply.splitlines()[0] == "#2 Carbonara  (italiana, primo, né vegana né vegetariana)"
+    assert "/ricetta" in reply
+
+
+def test_cerca_without_words_lists_the_latest(library):
+    fill(library)
+    [reply] = command("/cerca", library)
+    assert reply.startswith("#2 Carbonara") and "#1 Pasta e ceci" in reply
+
+
+def test_cerca_with_no_results_or_empty_library(library):
+    assert command("/cerca", library) == ["Libreria vuota."]
+    fill(library)
+    assert command("/cerca risotto", library) == ["Nessuna ricetta trovata per «risotto»."]
+
+
+def test_ricetta_shows_the_whole_recipe(library):
+    fill(library)
+    [reply] = command("/ricetta #2", library)
+    assert reply.startswith("#2 Carbonara")
+    assert "- pecorino romano: 50 g  [50 g di pecorino]" in reply
+
+
+def test_ricetta_needs_a_known_number(library):
+    fill(library)
+    assert "Scrivi il numero" in command("/ricetta", library)[0]
+    assert command("/ricetta 9", library) == ["Non c'è nessuna ricetta #9."]
+
+
+def test_start_and_unknown_commands_get_help(library):
+    for text in ("/start", "/aiuto", "/boh", "/cerca@burp_bot"):
+        assert command(text, library)
+    assert "/cerca" in command("/start", library)[0]
+    assert "Libreria vuota." in command("/cerca@burp_bot", library)
+
+
+def test_long_replies_are_split_under_the_telegram_limit():
+    from burp.bot import split_message
+
+    text = "\n".join(f"riga {n} " + "x" * 90 for n in range(100))
+    chunks = split_message(text, limit=1000)
+    assert all(len(chunk) <= 1000 for chunk in chunks)
+    assert "\n".join(chunks) == text
+    assert split_message("y" * 2500, limit=1000) == ["y" * 1000, "y" * 1000, "y" * 500]

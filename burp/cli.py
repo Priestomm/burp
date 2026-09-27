@@ -21,8 +21,9 @@ from burp.catalog import SynonymIndex, load_ingredients
 from burp.config import Settings, load_env
 from burp.frames import ClaudeFrameDescriber
 from burp.ingest import SourcePost, fetch_instagram, from_caption, from_screenshots
-from burp.library import Library, SavedRecipe
-from burp.pipeline import DIET_LABELS, import_post, summarize
+from burp.library import Library
+from burp.pipeline import import_post
+from burp.render import full_text, one_line, summarize
 from burp.transcribe import FasterWhisperTranscriber
 
 
@@ -149,50 +150,6 @@ def run_import(
         saved, created = library.add(imported)
         print(f"salvata come #{saved.id}" if created else f"già in libreria (#{saved.id})")
     return 0
-
-
-def one_line(saved: SavedRecipe) -> str:
-    recipe = saved.recipe
-    tags = [recipe.tags.cuisine, recipe.tags.course, DIET_LABELS[recipe.tags.diet]]
-    if recipe.completeness.status == "partial":
-        tags.append("parziale")
-    return f"#{saved.id:<4} {recipe.title}  ({', '.join(t for t in tags if t)})"
-
-
-def full_text(saved: SavedRecipe) -> str:
-    recipe = saved.recipe
-    lines = [f"#{saved.id} {recipe.title}"]
-    if recipe.author_handle:
-        lines.append(f"di @{recipe.author_handle}")
-    if recipe.source_url:
-        lines.append(recipe.source_url)
-    facts = []
-    if recipe.servings:
-        facts.append(f"{recipe.servings} porzioni")
-    if recipe.time_minutes:
-        facts.append(f"{recipe.time_minutes} minuti")
-    tags = [recipe.tags.cuisine, recipe.tags.course, DIET_LABELS[recipe.tags.diet]]
-    lines.append(" · ".join([*facts, *(t for t in tags if t)]))
-
-    lines += ["", "Ingredienti:"]
-    for item in recipe.ingredients:
-        amount = (
-            " ".join(part for part in (_number(item.quantity), item.unit) if part)
-            or "quantità non indicata"
-        )
-        lines.append(f"- {item.canonical_name}: {amount}  [{item.original_text}]")
-    lines += ["", "Procedimento:"]
-    lines += [f"{n}. {step}" for n, step in enumerate(recipe.steps, 1)] or ["(non indicato)"]
-    if recipe.completeness.status == "partial":
-        lines += ["", "Ricetta parziale, manca: " + "; ".join(recipe.completeness.missing)]
-    lines += ["", f"fonte del testo: {saved.imported.content_source}"]
-    return "\n".join(lines)
-
-
-def _number(value: float | None) -> str | None:
-    if value is None:
-        return None
-    return str(int(value)) if value == int(value) else f"{value:g}"
 
 
 if __name__ == "__main__":

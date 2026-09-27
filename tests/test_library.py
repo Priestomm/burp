@@ -117,3 +117,11 @@ def test_library_persists_on_disk(tmp_path, catalog):
         lib.add(imported())
     with Library(path, catalog) as lib:
         assert titles(lib.search()) == ["Dal tadka"]
+
+
+def test_free_text_matches_title_tags_or_ingredients(filled):
+    assert titles(filled.search(text="vegana ceci")) == ["Curry di ceci", "Pasta e ceci"]
+    assert titles(filled.search(text="pecorino")) == ["Carbonara"]  # an ingredient only
+    assert titles(filled.search(text="unico")) == ["Curry di ceci"]  # part of the course
+    assert titles(filled.search(text="Curry chickpeas")) == ["Curry di ceci"]
+    assert filled.search(text="carbonara vegana") == []

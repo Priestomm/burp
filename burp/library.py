@@ -119,31 +119,44 @@ class Library:
         title: str | None = None,
         tags: Iterable[str] = (),
         ingredients: Iterable[str] = (),
+        text: str | None = None,
     ) -> list[SavedRecipe]:
         """Recipes matching every given filter, newest first. No filter lists everything.
 
         - title: every word contained in the title, ignoring case and accents;
         - tags: each one equal to the cuisine, the course or the diet ("vegana" works too);
         - ingredients: each one in the recipe, by canonical name ("pomodori", "tomato" and
-          "pomodoro" are the same) or as part of one ("pecorino" finds "pecorino romano").
+          "pomodoro" are the same) or as part of one ("pecorino" finds "pecorino romano");
+        - text: free words, as typed in a chat. Each word must be in the title, the tags or
+          the ingredients: "vegana ceci" finds vegan recipes with chickpeas.
         """
-        clauses: list[str] = []
-        params: list[str] = []
-        for word in normalize_name(title or "").split():
-            clauses.append("title_norm LIKE ?")
-            params.append(f"%{word}%")
-        for tag in tags:
-            norm = normalize_name(tag)
-            clauses.append("(cuisine = ? OR course = ? OR diet = ?)")
-            params += [norm, norm, DIET_ALIASES.get(norm, norm)]
-        for name in ingredients:
-            canonical = normalize_name(self.catalog.canonical_name(name) if self.catalog else name)
-            clauses.append(
-                "id IN (SELECT recipe_id FROM recipe_ingredients WHERE name = ? OR name LIKE ?)"
-            )
-            params += [canonical, f"%{normalize_name(name)}%"]
-        where = " AND ".join(clauses) or "1"
-        return self._many(where, *params)
+        clauses: list[tuple[str, list[str]]] = []
+        clauses += [self._title(word) for word in normalize_name(title or "").split()]
+        clauses += [self._tag(tag) for tag in tags]
+        clauses += [self._ingredient(name) for name in ingredients]
+        for word in normalize_name(text or "").split():
+            options = [self._title(word), self._tag(word, partial=True), self._ingredient(word)]
+            sql = " OR ".join(option for option, _ in options)
+            clauses.append((f"({sql})", [p for _, params in options for p in params]))
+        where = " AND ".join(sql for sql, _ in clauses) or "1"
+        return self._many(where, *(p for _, params in clauses for p in params))
+
+    @staticmethod
+    def _title(word: str) -> tuple[str, list[str]]:
+        return "title_norm LIKE ?", [f"%{word}%"]
+
+    @staticmethod
+    def _tag(tag: str, partial: bool = False) -> tuple[str, list[str]]:
+        norm = normalize_name(tag)
+        diet = DIET_ALIASES.get(norm, norm)
+        if partial:  # a single typed word can be part of a course ("unico" in "piatto unico")
+            return "(cuisine LIKE ? OR course LIKE ? OR diet = ?)", [f"%{norm}%"] * 2 + [diet]
+        return "(cuisine = ? OR course = ? OR diet = ?)", [norm, norm, diet]
+
+    def _ingredient(self, name: str) -> tuple[str, list[str]]:
+        canonical = normalize_name(self.catalog.canonical_name(name) if self.catalog else name)
+        sql = "id IN (SELECT recipe_id FROM recipe_ingredients WHERE name = ? OR name LIKE ?)"
+        return sql, [canonical, f"%{normalize_name(name)}%"]
 
     def _one(self, where: str, *params) -> SavedRecipe | None:
         found = self._many(where, *params)
