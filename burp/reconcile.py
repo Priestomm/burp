@@ -18,10 +18,10 @@ from burp.diet import (
     UnknownIngredientError,
     compute_diet,
 )
-from burp.ingest.store import ImportedRecipe, Provenance
-from burp.ingest.structure import ExtractedIngredient, ExtractedRecipe
 from burp.matching import SynonymIndex, normalize_name
 from burp.models import Adaptation, Diet, Ingredient, RecipeDraft, RecipeIngredient
+from burp.store import ImportedRecipe, Provenance
+from burp.structure import ExtractedIngredient, ExtractedRecipe
 
 
 @dataclass

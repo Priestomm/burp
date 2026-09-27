@@ -12,8 +12,13 @@ import subprocess
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
 
-INSTAGRAM_URL = re.compile(r"https?://(?:www\.)?instagram\.com/(?:p|reel|reels|tv)/[\w-]+/?")
+# Also matches m.instagram.com and links prefixed by the author, e.g. /username/reel/CODE/.
+INSTAGRAM_URL = re.compile(
+    r"https?://(?:www\.|m\.)?instagram\.com/(?:(?P<author>[\w.]+)/)?"
+    r"(?P<kind>p|reels?|tv)/(?P<code>[\w-]+)/?\S*"
+)
 
 
 class IngestionError(RuntimeError):
@@ -26,22 +31,52 @@ class SourcePost:
     caption: str = ""
     video_path: Path | None = None
     screenshot_paths: list[Path] = field(default_factory=list)
+    author_handle: str | None = None
 
 
 def find_instagram_url(text: str) -> str | None:
+    """The first Instagram post/reel link in `text`, normalized."""
     match = INSTAGRAM_URL.search(text)
-    return match.group(0) if match else None
+    return normalize_url(match.group(0)) if match else None
+
+
+def normalize_url(url: str) -> str:
+    """Canonical form of a link: no tracking query (?igsh=...), fragment or author prefix."""
+    url = url.strip()
+    match = INSTAGRAM_URL.fullmatch(url)
+    if match:
+        kind = "reel" if match["kind"] == "reels" else match["kind"]
+        return f"https://www.instagram.com/{kind}/{match['code']}/"
+    parts = urlsplit(url)
+    return urlunsplit((parts.scheme.lower(), parts.netloc.lower(), parts.path.rstrip("/"), "", ""))
+
+
+def source_key(url: str) -> str:
+    """Identity of the shared post, used to deduplicate. A post and its reel share a code."""
+    match = INSTAGRAM_URL.fullmatch(url.strip())
+    return f"instagram:{match['code']}" if match else normalize_url(url)
+
+
+def _author_from_url(url: str | None) -> str | None:
+    match = INSTAGRAM_URL.fullmatch(url.strip()) if url else None
+    return match["author"] if match and match["author"] else None
+
+
+def _post(url: str | None, **fields) -> SourcePost:
+    return SourcePost(
+        url=normalize_url(url) if url else None, author_handle=_author_from_url(url), **fields
+    )
 
 
 def from_caption(caption: str, url: str | None = None) -> SourcePost:
-    return SourcePost(url=url, caption=caption.strip())
+    return _post(url, caption=caption.strip())
 
 
 def from_screenshots(paths: list[Path], url: str | None = None, caption: str = "") -> SourcePost:
     missing = [str(p) for p in paths if not Path(p).is_file()]
     if missing:
         raise IngestionError(f"screenshot not found: {', '.join(missing)}")
-    return SourcePost(url=url, caption=caption.strip(), screenshot_paths=[Path(p) for p in paths])
+    return _post(url, caption=caption.strip(), screenshot_paths=[Path(p) for p in paths])
 
 
 def fetch_instagram(
@@ -56,6 +91,7 @@ def fetch_instagram(
             "yt-dlp is not installed. Run `uv sync --extra media`, or paste the caption "
             "(--caption-file) or send a screenshot instead."
         )
+    shared_url, url = url, normalize_url(url)
     workdir = workdir or Path(tempfile.mkdtemp(prefix="burp-"))
     command = [ytdlp, "--no-playlist", "--write-info-json", "-o", str(workdir / "post.%(ext)s")]
     if cookies_file:
@@ -68,14 +104,28 @@ def fetch_instagram(
             "Instagram often needs login cookies (INSTAGRAM_COOKIES_FILE); "
             "otherwise paste the caption or send a screenshot."
         )
-    return _post_from_workdir(url, workdir)
+    post = _post_from_workdir(url, workdir)
+    post.author_handle = post.author_handle or _author_from_url(shared_url)
+    return post
 
 
 def _post_from_workdir(url: str, workdir: Path) -> SourcePost:
     info_file = workdir / "post.info.json"
-    caption = ""
-    if info_file.exists():
-        info = json.loads(info_file.read_text())
-        caption = (info.get("description") or info.get("title") or "").strip()
+    info = json.loads(info_file.read_text()) if info_file.exists() else {}
+    caption = (info.get("description") or info.get("title") or "").strip()
     videos = sorted(p for p in workdir.glob("post.*") if p.suffix in {".mp4", ".webm", ".mov"})
-    return SourcePost(url=url, caption=caption, video_path=videos[0] if videos else None)
+    return SourcePost(
+        url=url,
+        caption=caption,
+        video_path=videos[0] if videos else None,
+        author_handle=_author_from_info(info),
+    )
+
+
+def _author_from_info(info: dict) -> str | None:
+    """yt-dlp puts the Instagram username in `channel`; `uploader_id` may be a numeric id."""
+    for key in ("channel", "uploader_id"):
+        value = str(info.get(key) or "").lstrip("@")
+        if value and not value.isdigit():
+            return value
+    return None

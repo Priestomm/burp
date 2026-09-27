@@ -15,17 +15,17 @@ from pathlib import Path
 import anthropic
 
 from burp.config import Settings, load_env
-from burp.ingest.frames import ClaudeFrameDescriber
-from burp.ingest.pipeline import import_post, summarize
-from burp.ingest.sources import (
+from burp.frames import ClaudeFrameDescriber
+from burp.ingest import (
     SourcePost,
     fetch_instagram,
     from_caption,
     from_screenshots,
 )
-from burp.ingest.store import IMPORTED_DIR, save
-from burp.ingest.transcribe import FasterWhisperTranscriber
 from burp.loader import load_ingredients
+from burp.pipeline import import_post, summarize
+from burp.store import IMPORTED_DIR, save
+from burp.transcribe import FasterWhisperTranscriber
 
 
 def parse_args(argv: list[str] | None) -> argparse.Namespace:

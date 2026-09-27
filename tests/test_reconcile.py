@@ -1,8 +1,8 @@
 import pytest
 
-from burp.ingest.reconcile import country_numeric, reconcile, slugify
-from burp.ingest.store import Provenance
-from burp.ingest.structure import ExtractedRecipe
+from burp.reconcile import country_numeric, reconcile, slugify
+from burp.store import Provenance
+from burp.structure import ExtractedRecipe
 
 
 def ing(name, text=None, quantity=None, unit=None):

@@ -11,9 +11,9 @@ import anthropic
 import pytest
 
 from burp.config import DEFAULT_MODEL
-from burp.ingest.content import is_sufficient
-from burp.ingest.reconcile import reconcile
-from burp.ingest.structure import structure_recipe
+from burp.extract import is_sufficient
+from burp.reconcile import reconcile
+from burp.structure import structure_recipe
 
 CAPTIONS = Path(__file__).parent / "fixtures" / "captions"
 

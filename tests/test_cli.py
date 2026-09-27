@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from burp.ingest.structure import ExtractedRecipe
+from burp.structure import ExtractedRecipe
 from import_recipe import main
 from tests.test_structure import FakeClient, valid_recipe
 

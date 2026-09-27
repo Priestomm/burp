@@ -1,5 +1,5 @@
-from burp.ingest.reconcile import reconcile
-from burp.ingest.store import Provenance, load_all, ready_drafts, save
+from burp.reconcile import reconcile
+from burp.store import Provenance, load_all, ready_drafts, save
 from tests.test_reconcile import recipe
 
 

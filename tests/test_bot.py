@@ -4,8 +4,8 @@ from pathlib import Path
 import httpx
 
 from bot import TelegramApi, handle_update, parse_update
-from burp.ingest.pipeline import import_post
-from burp.ingest.sources import IngestionError
+from burp.ingest import IngestionError
+from burp.pipeline import import_post
 from tests.test_structure import FakeClient, valid_recipe
 
 CAPTIONS = Path(__file__).parent / "fixtures" / "captions"

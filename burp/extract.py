@@ -11,9 +11,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from burp.ingest.frames import FrameDescriber, extract_frames
-from burp.ingest.sources import SourcePost
-from burp.ingest.transcribe import Transcriber
+from burp.frames import FrameDescriber, extract_frames
+from burp.ingest import SourcePost
+from burp.transcribe import Transcriber
 
 log = logging.getLogger(__name__)
 

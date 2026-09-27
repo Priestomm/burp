@@ -16,10 +16,9 @@ import anthropic
 import httpx
 
 from burp.config import Settings, load_env
-from burp.ingest.content import InsufficientContentError, is_sufficient
-from burp.ingest.frames import ClaudeFrameDescriber
-from burp.ingest.pipeline import import_post, summarize
-from burp.ingest.sources import (
+from burp.extract import InsufficientContentError, is_sufficient
+from burp.frames import ClaudeFrameDescriber
+from burp.ingest import (
     IngestionError,
     SourcePost,
     fetch_instagram,
@@ -27,10 +26,11 @@ from burp.ingest.sources import (
     from_caption,
     from_screenshots,
 )
-from burp.ingest.store import IMPORTED_DIR, ImportedRecipe, save
-from burp.ingest.structure import StructuringError
-from burp.ingest.transcribe import FasterWhisperTranscriber
 from burp.loader import load_ingredients
+from burp.pipeline import import_post, summarize
+from burp.store import IMPORTED_DIR, ImportedRecipe, save
+from burp.structure import StructuringError
+from burp.transcribe import FasterWhisperTranscriber
 
 log = logging.getLogger("bot")
 

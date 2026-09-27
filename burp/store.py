@@ -9,8 +9,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from burp.ingest.structure import ExtractedRecipe
 from burp.models import Diet, RecipeDraft
+from burp.structure import ExtractedRecipe
 
 IMPORTED_DIR = Path(__file__).parent.parent.parent / "data" / "imported"
 

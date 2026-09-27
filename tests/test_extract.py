@@ -3,13 +3,13 @@ from pathlib import Path
 
 import pytest
 
-from burp.ingest import content
-from burp.ingest.content import (
+from burp import extract
+from burp.extract import (
     InsufficientContentError,
     extract_content,
     is_sufficient,
 )
-from burp.ingest.sources import SourcePost
+from burp.ingest import SourcePost
 
 CAPTIONS = Path(__file__).parent / "fixtures" / "captions"
 FULL_RECIPE = "Ingredienti: " + " ".join(f"{n} g di farina bianca" for n in range(10, 20))
@@ -75,7 +75,7 @@ def test_insufficient_caption_falls_back_to_transcript():
 
 def test_insufficient_transcript_falls_back_to_frames(monkeypatch, tmp_path):
     frame = tmp_path / "frame_0.jpg"
-    monkeypatch.setattr(content, "extract_frames", lambda video, out, count: [frame])
+    monkeypatch.setattr(extract, "extract_frames", lambda video, out, count: [frame])
     post = SourcePost(caption=caption("emoji_only"), video_path=Path("v.mp4"))
     describer = FakeDescriber()
     result = extract_content(post, FakeTranscriber("musica"), describer)
