@@ -1,4 +1,4 @@
-from burp.config import DEFAULT_MODEL, Settings, load_env
+from burp.config import DEFAULT_DB_PATH, DEFAULT_MODEL, Settings, load_env
 
 
 def test_load_env_reads_values_and_skips_comments(tmp_path, monkeypatch):
@@ -28,12 +28,13 @@ def test_load_env_ignores_missing_file(tmp_path):
 
 
 def test_settings_defaults(monkeypatch):
-    for key in ("ANTHROPIC_API_KEY", "BURP_MODEL", "TELEGRAM_ALLOWED_USER_IDS"):
+    for key in ("ANTHROPIC_API_KEY", "BURP_MODEL", "TELEGRAM_ALLOWED_USER_IDS", "BURP_DB_PATH"):
         monkeypatch.delenv(key, raising=False)
     settings = Settings.from_env()
     assert settings.anthropic_api_key is None
     assert settings.model == DEFAULT_MODEL
     assert settings.telegram_allowed_user_ids == frozenset()
+    assert settings.db_path == DEFAULT_DB_PATH
 
 
 def test_settings_parse_allowed_user_ids(monkeypatch):

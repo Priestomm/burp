@@ -1,6 +1,6 @@
 """Telegram bot: forward it an Instagram link (or paste a caption, or send a screenshot).
 
-    uv run python bot.py
+    uv run burp bot
 
 Long polling over the Bot API with httpx. Only the user ids in TELEGRAM_ALLOWED_USER_IDS are
 served, and only what they send explicitly is processed.
@@ -27,9 +27,9 @@ from burp.ingest import (
     from_caption,
     from_screenshots,
 )
+from burp.library import Library
 from burp.models import ImportedRecipe
 from burp.pipeline import import_post, summarize
-from burp.store import IMPORTED_DIR, save
 from burp.structure import StructuringError
 from burp.transcribe import FasterWhisperTranscriber
 
@@ -103,8 +103,8 @@ def handle_update(
     api: TelegramApi,
     allowed_user_ids: frozenset[int],
     run_import: Callable[[SourcePost], ImportedRecipe],
+    library: Library,
     cookies_file: Path | None = None,
-    output_dir: Path = IMPORTED_DIR,
 ) -> None:
     message = parse_update(update)
     if message is None:
@@ -115,8 +115,14 @@ def handle_update(
     if not message.text.strip() and not message.photo_file_id:
         api.send_message(message.chat_id, HELP)
         return
+    url = find_instagram_url(message.text)
+    # Checked before downloading anything or calling the model: a duplicate costs nothing.
+    if url and (existing := library.find_by_url(url)):
+        reply = f"Questa ricetta è già nella tua libreria (#{existing.id}).\n\n"
+        api.send_message(message.chat_id, reply + summarize(existing.imported))
+        return
     try:
-        recipe = run_import(build_post(message, api, cookies_file))
+        imported = run_import(build_post(message, api, cookies_file))
     except IngestionError as error:
         reply = f"Non sono riuscito a leggere il link: {error}"
     except InsufficientContentError as error:
@@ -126,8 +132,9 @@ def handle_update(
     except RuntimeError as error:  # e.g. the optional `media` extra is not installed
         reply = f"Errore: {error}"
     else:
-        save(recipe, output_dir)
-        reply = summarize(recipe)
+        saved, created = library.add(imported)
+        status = f"Salvata come #{saved.id}." if created else f"Già in libreria (#{saved.id})."
+        reply = f"{summarize(imported)}\n\n{status}"
     api.send_message(message.chat_id, reply)
 
 
@@ -155,6 +162,7 @@ def main() -> int:
 
     client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
     catalog = SynonymIndex(load_ingredients())
+    library = Library(settings.db_path, catalog)
     transcriber = FasterWhisperTranscriber(settings.whisper_model)
     describer = ClaudeFrameDescriber(client, settings.model)
 
@@ -171,6 +179,7 @@ def main() -> int:
                 api,
                 settings.telegram_allowed_user_ids,
                 run_import,
+                library,
                 settings.instagram_cookies_file,
             ),
         )

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import httpx
 
-from bot import TelegramApi, handle_update, parse_update
+from burp.bot import TelegramApi, handle_update, parse_update
 from burp.catalog import SynonymIndex, load_ingredients
 from burp.ingest import IngestionError
 from burp.pipeline import import_post
@@ -51,47 +51,49 @@ def test_parse_update_ignores_non_messages():
     assert parse_update({"update_id": 1, "edited_message": {}}) is None
 
 
-def test_pasted_caption_is_imported_and_saved(tmp_path):
+def test_pasted_caption_is_imported_and_saved(library):
     sent: list[dict] = []
     text = (CAPTIONS / "completa.txt").read_text()
-    handle_update(message(text), make_api(sent), ALLOWED, importer(), output_dir=tmp_path)
-    assert (tmp_path / "dal-tadka.json").exists()
+    handle_update(message(text), make_api(sent), ALLOWED, importer(), library)
+    [saved] = library.search()
+    assert saved.recipe.title == "Dal tadka"
     assert sent[0]["chat_id"] == 7
     assert "Dal tadka" in sent[0]["text"] and "completa" in sent[0]["text"]
+    assert f"Salvata come #{saved.id}" in sent[0]["text"]
 
 
-def test_unauthorized_user_gets_no_answer_and_nothing_runs(tmp_path):
+def test_unauthorized_user_gets_no_answer_and_nothing_runs(library):
     sent: list[dict] = []
 
     def boom(post):
         raise AssertionError("must not run")
 
-    handle_update(message("ciao", user_id=999), make_api(sent), ALLOWED, boom, output_dir=tmp_path)
+    handle_update(message("ciao", user_id=999), make_api(sent), ALLOWED, boom, library)
     assert sent == []
 
 
-def test_empty_message_gets_help(tmp_path):
+def test_empty_message_gets_help(library):
     sent: list[dict] = []
     update = message()
     update["message"]["sticker"] = {}
-    handle_update(update, make_api(sent), ALLOWED, importer(), output_dir=tmp_path)
+    handle_update(update, make_api(sent), ALLOWED, importer(), library)
     assert "Inoltrami" in sent[0]["text"]
 
 
-def test_link_that_cannot_be_fetched_asks_for_the_manual_fallback(tmp_path, monkeypatch):
+def test_link_that_cannot_be_fetched_asks_for_the_manual_fallback(library, monkeypatch):
     sent: list[dict] = []
 
     def failing_fetch(url, cookies_file=None):
         raise IngestionError("login required; paste the caption or send a screenshot")
 
-    monkeypatch.setattr("bot.fetch_instagram", failing_fetch)
+    monkeypatch.setattr("burp.bot.fetch_instagram", failing_fetch)
     link = "https://www.instagram.com/reel/abc/?igsh=xyz"
-    handle_update(message(link), make_api(sent), ALLOWED, importer(), output_dir=tmp_path)
+    handle_update(message(link), make_api(sent), ALLOWED, importer(), library)
     assert "screenshot" in sent[0]["text"]
-    assert list(tmp_path.iterdir()) == []
+    assert library.search() == []
 
 
-def test_screenshot_is_downloaded_and_sent_to_frame_analysis(tmp_path):
+def test_screenshot_is_downloaded_and_sent_to_frame_analysis(library):
     sent: list[dict] = []
     seen = {}
 
@@ -106,17 +108,32 @@ def test_screenshot_is_downloaded_and_sent_to_frame_analysis(tmp_path):
     def run_import(post):
         return import_post(post, catalog, client, "m", describer=Describer())
 
-    handle_update(message(photo="large"), make_api(sent), ALLOWED, run_import, output_dir=tmp_path)
+    handle_update(message(photo="large"), make_api(sent), ALLOWED, run_import, library)
     assert seen["images"][0].read_bytes() == b"jpeg-bytes"
-    assert (tmp_path / "dal-tadka.json").exists()
+    assert library.search()[0].imported.content_source == "frames"
     assert "fonte: frames" in sent[0]["text"]
 
 
-def test_missing_media_extra_is_reported_to_the_user(tmp_path):
+def test_missing_media_extra_is_reported_to_the_user(library):
     sent: list[dict] = []
 
     def no_extra(post):
         raise RuntimeError("faster-whisper is not installed. Run `uv sync --extra media`.")
 
-    handle_update(message("ciao"), make_api(sent), ALLOWED, no_extra, output_dir=tmp_path)
+    handle_update(message("ciao"), make_api(sent), ALLOWED, no_extra, library)
     assert "uv sync --extra media" in sent[0]["text"]
+
+
+def test_a_link_already_in_the_library_is_not_imported_again(library, monkeypatch):
+    sent: list[dict] = []
+    text = (CAPTIONS / "completa.txt").read_text() + "\nhttps://www.instagram.com/p/abc/"
+    handle_update(message(text), make_api(sent), ALLOWED, importer(), library)
+
+    def must_not_run(*args, **kwargs):
+        raise AssertionError("must not download or import")
+
+    monkeypatch.setattr("burp.bot.fetch_instagram", must_not_run)
+    link = "https://www.instagram.com/reel/abc/?igsh=xyz"
+    handle_update(message(link), make_api(sent), ALLOWED, must_not_run, library)
+    assert "già nella tua libreria (#1)" in sent[1]["text"]
+    assert len(library.search()) == 1

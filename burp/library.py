@@ -12,10 +12,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from burp.catalog import SynonymIndex, normalize_name
+from burp.config import DEFAULT_DB_PATH
 from burp.ingest import source_key
 from burp.models import ImportedRecipe, Recipe
-
-DEFAULT_PATH = Path(__file__).parent.parent / "data" / "burp.db"
 
 # Diet tags can be searched with their Italian names too.
 DIET_ALIASES = {
@@ -57,7 +56,7 @@ class SavedRecipe:
 
 
 class Library:
-    def __init__(self, path: Path | str = DEFAULT_PATH, catalog: SynonymIndex | None = None):
+    def __init__(self, path: Path | str = DEFAULT_DB_PATH, catalog: SynonymIndex | None = None):
         if str(path) != ":memory:":
             Path(path).parent.mkdir(parents=True, exist_ok=True)
         self.catalog = catalog

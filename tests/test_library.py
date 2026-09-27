@@ -10,12 +10,6 @@ def imported(**overrides) -> ImportedRecipe:
 
 
 @pytest.fixture
-def library(catalog):
-    with Library(":memory:", catalog) as lib:
-        yield lib
-
-
-@pytest.fixture
 def filled(library):
     library.add(
         imported(
