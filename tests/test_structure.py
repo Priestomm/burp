@@ -164,3 +164,24 @@ def test_diet_is_never_upgraded_from_the_catalog(catalog):
         tags={"diet": "neither"},
     )
     assert finalize(recipe, catalog).tags.diet == "neither"
+
+
+def test_missing_items_worded_differently_by_the_model_are_not_repeated(catalog):
+    # Seen live: the model wrote "del pecorino" and "dell'olio", the catalog says
+    # "pecorino romano" and "olio d'oliva".
+    recipe = valid_recipe(
+        ingredients=[
+            ingredient("pecorino", "pecorino grattugiato"),
+            ingredient("olio extravergine d'oliva", "olio extravergine d'oliva"),
+            ingredient("menta", "menta fresca"),
+        ],
+        completeness={
+            "status": "partial",
+            "missing": ["quantità del pecorino", "quantità dell'olio"],
+        },
+    )
+    assert finalize(recipe, catalog).completeness.missing == [
+        "quantità del pecorino",
+        "quantità dell'olio",
+        "quantità di menta",
+    ]

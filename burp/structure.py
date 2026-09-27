@@ -138,9 +138,10 @@ def finalize(
 def _checked_completeness(recipe: Recipe, ingredients: list[RecipeIngredient]) -> Completeness:
     missing = list(recipe.completeness.missing)
     mentioned = f" {normalize_name(' '.join(missing))} "
-    for item in ingredients:
+    # `ingredients` carry the catalog names; the model's missing list uses its own wording.
+    for item, as_written in zip(ingredients, recipe.ingredients, strict=True):
         to_taste = item.unit == "q.b." or TO_TASTE.search(item.original_text)
-        listed = f" {normalize_name(item.canonical_name)} " in mentioned
+        listed = _mentioned(mentioned, item.canonical_name, as_written.canonical_name)
         if item.quantity is None and not to_taste and not listed:
             missing.append(f"quantità di {item.canonical_name}")
     if not recipe.steps and " procedimento " not in mentioned:
@@ -148,6 +149,16 @@ def _checked_completeness(recipe: Recipe, ingredients: list[RecipeIngredient]) -
     if missing != recipe.completeness.missing:
         log.info("completeness: marked partial, missing %s", missing)
     return Completeness(status="partial" if missing else "complete", missing=missing)
+
+
+def _mentioned(text: str, *names: str) -> bool:
+    """True if one of the names, or its head noun ("pecorino" for "pecorino romano"), is in
+    `text`: the model may write "quantità del pecorino" or "quantità dell'olio"."""
+    for name in names:
+        words = normalize_name(name).split()
+        if words and (f" {' '.join(words)} " in text or f" {words[0]} " in text):
+            return True
+    return False
 
 
 def _checked_diet(recipe: Recipe, catalog: SynonymIndex, names: list[str]) -> Tags:
