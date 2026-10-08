@@ -10,6 +10,7 @@ DEFAULT_MODEL = "claude-opus-5-5"
 # Small, cheap jobs: splitting a title, picking the best video frame.
 DEFAULT_FAST_MODEL = "claude-haiku-4-5"
 DEFAULT_DB_PATH = ROOT_DIR / "data" / "burp.db"
+DEFAULT_MEDIA_DIR = ROOT_DIR / "data" / "media"
 
 
 def load_env(path: Path = ROOT_DIR / ".env") -> None:
@@ -41,11 +42,13 @@ class Settings:
     whisper_model: str
     instagram_cookies_file: Path | None
     db_path: Path
+    media_dir: Path
 
     @classmethod
     def from_env(cls) -> "Settings":
         cookies = os.environ.get("INSTAGRAM_COOKIES_FILE")
         db_path = os.environ.get("BURP_DB_PATH")
+        media_dir = os.environ.get("BURP_MEDIA_DIR")
         allowed = os.environ.get("TELEGRAM_ALLOWED_USER_IDS", "")
         return cls(
             anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY") or None,
@@ -58,4 +61,5 @@ class Settings:
             whisper_model=os.environ.get("WHISPER_MODEL") or "base",
             instagram_cookies_file=Path(cookies) if cookies else None,
             db_path=Path(db_path) if db_path else DEFAULT_DB_PATH,
+            media_dir=Path(media_dir) if media_dir else DEFAULT_MEDIA_DIR,
         )

@@ -54,7 +54,54 @@ MIGRATIONS = [
     );
     CREATE INDEX IF NOT EXISTS cooked_recipe ON cooked(recipe_id);
     """,
+    """
+    CREATE TABLE IF NOT EXISTS media (
+        recipe_id INTEGER PRIMARY KEY REFERENCES recipes(id) ON DELETE CASCADE,
+        original TEXT NOT NULL,
+        halftone TEXT NOT NULL,
+        source TEXT NOT NULL,
+        confidence REAL NOT NULL,
+        alt TEXT NOT NULL,
+        creator TEXT,
+        source_url TEXT,
+        created_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS jobs (
+        id INTEGER PRIMARY KEY,
+        kind TEXT NOT NULL,
+        recipe_id INTEGER NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+        inputs TEXT NOT NULL,
+        status TEXT NOT NULL,
+        note TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS jobs_status ON jobs(status, id);
+    """,
 ]
+
+
+@dataclass(frozen=True)
+class Media:
+    """The dish photo of a recipe. Paths are relative to the media directory."""
+
+    original: str
+    halftone: str
+    source: str  # "frame" (from a video the user sent) or "screenshot"
+    confidence: float
+    alt: str
+    creator: str | None
+    source_url: str | None
+
+
+@dataclass(frozen=True)
+class Job:
+    id: int
+    kind: str
+    recipe_id: int
+    inputs: list[str]
+    status: str  # queued, running, done, failed
+    note: str
 
 
 @dataclass(frozen=True)
@@ -215,6 +262,69 @@ class Library:
         )
         return {row["recipe_id"]: Cooked(row["n"], row["last"]) for row in rows}
 
+    def enqueue(self, kind: str, recipe_id: int, inputs: list[str]) -> int:
+        """Queue background work (e.g. the dish photo) for a recipe; returns the job id."""
+        now = _now()
+        with self.conn:
+            cursor = self.conn.execute(
+                "INSERT INTO jobs (kind, recipe_id, inputs, status, created_at, updated_at)"
+                " VALUES (?, ?, ?, 'queued', ?, ?)",
+                (kind, recipe_id, json.dumps(inputs), now, now),
+            )
+        return cursor.lastrowid
+
+    def claim_job(self) -> Job | None:
+        """Take the oldest queued job and mark it running (safe with several workers)."""
+        with self.conn:
+            row = self.conn.execute(
+                "UPDATE jobs SET status = 'running', updated_at = ? WHERE id = ("
+                " SELECT id FROM jobs WHERE status = 'queued' ORDER BY id LIMIT 1)"
+                " RETURNING id, kind, recipe_id, inputs, status, note",
+                (_now(),),
+            ).fetchone()
+        return _job(row) if row else None
+
+    def finish_job(self, job_id: int, ok: bool, note: str = "") -> None:
+        with self.conn:
+            self.conn.execute(
+                "UPDATE jobs SET status = ?, note = ?, updated_at = ? WHERE id = ?",
+                ("done" if ok else "failed", note, _now(), job_id),
+            )
+
+    def jobs(self, recipe_id: int) -> list[Job]:
+        rows = self.conn.execute(
+            "SELECT id, kind, recipe_id, inputs, status, note FROM jobs WHERE recipe_id = ?"
+            " ORDER BY id",
+            (recipe_id,),
+        )
+        return [_job(row) for row in rows]
+
+    def set_media(self, recipe_id: int, media: Media) -> None:
+        with self.conn:
+            self.conn.execute(
+                "INSERT OR REPLACE INTO media (recipe_id, original, halftone, source, confidence,"
+                " alt, creator, source_url, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    recipe_id,
+                    media.original,
+                    media.halftone,
+                    media.source,
+                    media.confidence,
+                    media.alt,
+                    media.creator,
+                    media.source_url,
+                    _now(),
+                ),
+            )
+
+    def media(self, recipe_id: int) -> Media | None:
+        row = self.conn.execute(
+            "SELECT original, halftone, source, confidence, alt, creator, source_url FROM media"
+            " WHERE recipe_id = ?",
+            (recipe_id,),
+        ).fetchone()
+        return Media(**dict(row)) if row else None
+
     def _edit(self, recipe_id: int, index: int, edit: IngredientEdit) -> SavedRecipe:
         saved = self._require(recipe_id)
         self._check_index(saved, index)
@@ -294,3 +404,18 @@ class Library:
 def _saved(row: sqlite3.Row) -> SavedRecipe:
     imported = ImportedRecipe.model_validate_json(row["data"])
     return SavedRecipe(row["id"], row["created_at"], imported)
+
+
+def _now() -> str:
+    return datetime.now(UTC).isoformat(timespec="seconds")
+
+
+def _job(row: sqlite3.Row) -> Job:
+    return Job(
+        id=row["id"],
+        kind=row["kind"],
+        recipe_id=row["recipe_id"],
+        inputs=json.loads(row["inputs"]),
+        status=row["status"],
+        note=row["note"],
+    )
