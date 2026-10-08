@@ -142,7 +142,18 @@ Dal bot: manda uno screenshot o un video insieme alla ricetta, oppure un'immagin
 
 ## Web app
 
-La dashboard è in `web/` (Next.js): vedi [web/README.md](web/README.md). In breve, `uv run burp serve` in un terminale e `cd web && pnpm dev` in un altro, poi http://localhost:3000. Per ora gira solo in locale e senza login.
+La dashboard è in `web/` (Next.js 16, React 19, TypeScript): vedi [web/README.md](web/README.md).
+
+```sh
+uv run burp serve          # API su 127.0.0.1:8000
+cd web && pnpm dev         # http://localhost:3000
+```
+
+- **Libreria** (`/`): un foglio di adesivi, uno per ricetta, con forma e colore fissati dal suo numero e quanti dati restano da chiarire; ricerca a parole libere.
+- **Ricetta** (`/ricette/3`): nome in due righe enormi, aggettivi nel fumetto con la mascotte, foto a retino con gli adesivi della dieta e delle porzioni, avviso per le quantità mancanti ("Li scrivo io" / "Sì, a occhio"), selettore da 1 a 4 persone con le dosi ricalcolate, procedimento e "L'ho cucinata".
+- **Adesivi** (`/adesivi`): tutti i componenti SVG su un foglio.
+
+Per ora gira solo in locale e senza login: prima di metterla online servono autenticazione e un hosting per API e foto.
 
 ## Test
 
