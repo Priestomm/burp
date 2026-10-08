@@ -165,21 +165,33 @@ def _discard_inputs(media_dir: Path, inputs: list[str]) -> None:
 
 
 def run_forever(
-    open_library, picker: FramePicker, media_dir: Path, stop: threading.Event, idle: float = 2.0
+    open_library,
+    picker: FramePicker,
+    media_dir: Path,
+    stop: threading.Event,
+    remover: BackgroundRemover | None = None,
+    finder: Finder | None = None,
+    idle: float = 2.0,
 ) -> None:
     """Poll the queue until `stop` is set. `open_library` makes a connection for this thread."""
     with open_library() as library:
         while not stop.is_set():
-            if not run_once(library, picker, media_dir):
+            if not run_once(library, picker, media_dir, remover, finder):
                 stop.wait(idle)
 
 
-def start_in_background(open_library, picker: FramePicker, media_dir: Path) -> threading.Event:
+def start_in_background(
+    open_library,
+    picker: FramePicker,
+    media_dir: Path,
+    remover: BackgroundRemover | None = None,
+    finder: Finder | None = None,
+) -> threading.Event:
     """Run the queue in a daemon thread; set the returned event to stop it."""
     stop = threading.Event()
     threading.Thread(
         target=run_forever,
-        args=(open_library, picker, media_dir, stop),
+        args=(open_library, picker, media_dir, stop, remover, finder),
         daemon=True,
         name="burp-worker",
     ).start()

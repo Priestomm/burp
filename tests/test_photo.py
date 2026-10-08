@@ -271,3 +271,31 @@ def test_zine_job_without_rembg_still_photocopies(library, saved, tmp_path):
     media = library.media(saved.id)
     assert media.photocopy and media.cutout is None
     assert "installa l'extra cutout" in library.jobs(saved.id)[-1].note
+
+
+def test_the_background_worker_hands_the_remover_and_finder_to_every_job(monkeypatch, tmp_path):
+    import threading
+
+    from burp import worker
+
+    seen = []
+    done = threading.Event()
+
+    def fake_run_once(library, picker, media_dir, remover=None, finder=None):
+        seen.append((remover, finder))
+        done.set()
+        return False
+
+    monkeypatch.setattr(worker, "run_once", fake_run_once)
+
+    class Opened:
+        def __enter__(self):
+            return "library"
+
+        def __exit__(self, *exc):
+            return False
+
+    stop = worker.start_in_background(Opened, "picker", tmp_path, "remover", "finder")
+    assert done.wait(2)
+    stop.set()
+    assert seen[0] == ("remover", "finder")

@@ -302,9 +302,10 @@ def main() -> int:
     library = Library(settings.db_path, catalog)
     # Dish photos are made in the background, so a reply never waits for them.
     picker = ClaudeFramePicker(client, settings.fast_model)
-    finder = build_finder(settings, client, default_remover())
+    remover = default_remover()
+    finder = build_finder(settings, client, remover)
     start_in_background(
-        lambda: Library(settings.db_path, catalog), picker, settings.media_dir, finder
+        lambda: Library(settings.db_path, catalog), picker, settings.media_dir, remover, finder
     )
     transcriber = FasterWhisperTranscriber(settings.whisper_model)
     describer = ClaudeFrameDescriber(client, settings.model)
