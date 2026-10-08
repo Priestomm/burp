@@ -9,7 +9,7 @@ from burp.models import ImportedRecipe, RecipeIngredient
 from burp.structure import TO_TASTE
 from burp.units import BaseUnit, to_base
 
-QuantityStatus = Literal["given", "to_taste", "missing", "by_eye"]
+QuantityStatus = Literal["given", "to_taste", "missing", "by_eye", "estimated"]
 
 
 class IngredientView(BaseModel):
@@ -22,6 +22,7 @@ class IngredientView(BaseModel):
     base_unit: BaseUnit | None  # set only when the amount can be scaled
     base_quantity: float | None
     edited: bool  # the quantity comes from the user, not from the post
+    estimate_reason: str | None = None  # set when the quantity is the AI's guess
 
 
 def ingredient_views(imported: ImportedRecipe) -> list[IngredientView]:
@@ -29,16 +30,22 @@ def ingredient_views(imported: ImportedRecipe) -> list[IngredientView]:
 
 
 def _view(index: int, item: RecipeIngredient, imported: ImportedRecipe) -> IngredientView:
+    # Who wins: the user, then the post, then "a occhio", then the AI's estimate.
     edit = imported.edits.get(index)
     edited = edit is not None and edit.quantity is not None
     quantity = edit.quantity if edited else item.quantity
     unit = edit.unit if edited else item.unit
+    estimate = imported.enrichment.quantities.get(index) if imported.enrichment else None
+    reason = None
     if quantity is not None:
         status: QuantityStatus = "given"
     elif unit == "q.b." or TO_TASTE.search(item.original_text):
         status = "to_taste"
     elif edit is not None and edit.by_eye:
         status = "by_eye"
+    elif estimate is not None:
+        status = "estimated"
+        quantity, unit, reason = estimate.quantity, estimate.unit, estimate.reason
     else:
         status = "missing"
     base = to_base(quantity, unit)
@@ -52,6 +59,7 @@ def _view(index: int, item: RecipeIngredient, imported: ImportedRecipe) -> Ingre
         base_unit=base[0] if base else None,
         base_quantity=base[1] if base else None,
         edited=edited,
+        estimate_reason=reason,
     )
 
 

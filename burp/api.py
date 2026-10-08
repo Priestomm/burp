@@ -8,12 +8,14 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Annotated
 
+import anthropic
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from burp.catalog import SynonymIndex, load_ingredients
 from burp.config import Settings
+from burp.fill import ClaudeFiller, Filler
 from burp.library import Cooked, Library, Media, SavedRecipe
 from burp.models import Completeness, ContentSource, Course, Diet, Tags
 from burp.view import IngredientView, ingredient_views, missing_names
@@ -54,11 +56,17 @@ class RecipeDetail(BaseModel):
     descrittore: str | None
     source_url: str | None
     author_handle: str | None
-    servings: int | None
+    servings: int | None = Field(description="From the post, or the AI's estimate")
+    servings_estimated: bool
     time_minutes: int | None
+    time_estimated: bool
     tags: Tags
     ingredients: list[IngredientView]
-    steps: list[str]
+    steps: list[str] = Field(description="Rewritten by the AI when filled, else as in the post")
+    original_steps: list[str] = Field(description="As in the post")
+    steps_rewritten: bool
+    steps_note: str | None = Field(description="What the AI added to the steps")
+    filled_by: str | None = Field(description="Model of 'Completa con l'AI', if used")
     still_missing: list[str] = Field(description="Ingredients whose quantity is still unknown")
     completeness: Completeness = Field(description="What the post did not say, as imported")
     content_source: ContentSource
@@ -99,6 +107,8 @@ def _photo(media: Media | None) -> PhotoOut | None:
 
 def detail(lib: Library, saved: SavedRecipe) -> RecipeDetail:
     recipe = saved.recipe
+    extra = saved.imported.enrichment
+    rewritten = bool(extra and extra.steps)
     return RecipeDetail(
         id=saved.id,
         created_at=saved.created_at,
@@ -108,11 +118,17 @@ def detail(lib: Library, saved: SavedRecipe) -> RecipeDetail:
         descrittore=recipe.descrittore,
         source_url=recipe.source_url,
         author_handle=recipe.author_handle,
-        servings=recipe.servings,
-        time_minutes=recipe.time_minutes,
+        servings=recipe.servings or (extra.servings if extra else None),
+        servings_estimated=recipe.servings is None and bool(extra and extra.servings),
+        time_minutes=recipe.time_minutes or (extra.time_minutes if extra else None),
+        time_estimated=recipe.time_minutes is None and bool(extra and extra.time_minutes),
         tags=recipe.tags,
         ingredients=ingredient_views(saved.imported),
-        steps=recipe.steps,
+        steps=extra.steps if rewritten else recipe.steps,
+        original_steps=recipe.steps,
+        steps_rewritten=rewritten,
+        steps_note=extra.steps_note if extra else None,
+        filled_by=extra.model if extra else None,
         still_missing=missing_names(saved.imported),
         completeness=recipe.completeness,
         content_source=saved.imported.content_source,
@@ -122,7 +138,11 @@ def detail(lib: Library, saved: SavedRecipe) -> RecipeDetail:
     )
 
 
-def create_app(db_path: Path | str | None = None, media_dir: Path | None = None) -> FastAPI:
+def create_app(
+    db_path: Path | str | None = None,
+    media_dir: Path | None = None,
+    filler: Filler | None = None,
+) -> FastAPI:
     settings = Settings.from_env()
     path = db_path or settings.db_path
     media_root = (media_dir or settings.media_dir).resolve()
@@ -175,6 +195,30 @@ def create_app(db_path: Path | str | None = None, media_dir: Path | None = None)
         if not inside or not target.is_file():
             raise HTTPException(404, "Immagine non trovata.")
         return FileResponse(target, headers={"Cache-Control": "no-cache"})
+
+    def get_filler() -> Filler:
+        nonlocal filler
+        if filler is None:
+            if not settings.anthropic_api_key:
+                raise HTTPException(503, "Manca ANTHROPIC_API_KEY: aggiungila a .env e riavvia.")
+            client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+            filler = ClaudeFiller(client, settings.fast_model)
+        return filler
+
+    @app.post("/api/recipes/{recipe_id}/fill", operation_id="fillRecipe")
+    def fill_recipe(lib: Lib, recipe_id: int) -> RecipeDetail:
+        """ "Completa con l'AI": estimate what the post did not say and rewrite the steps."""
+        saved = found(lib, recipe_id)
+        try:
+            enrichment = get_filler().fill(saved.imported)
+        except (anthropic.APIError, RuntimeError) as error:
+            raise HTTPException(502, f"Il completamento non è riuscito: {error}") from error
+        return detail(lib, lib.set_enrichment(recipe_id, enrichment))
+
+    @app.delete("/api/recipes/{recipe_id}/fill", operation_id="clearFill")
+    def clear_fill(lib: Lib, recipe_id: int) -> RecipeDetail:
+        """ "Togli le stime": back to what the post says, plus the user's own edits."""
+        return changed(lib, recipe_id, lambda: lib.set_enrichment(recipe_id, None))
 
     @app.get("/api/recipes", operation_id="listRecipes")
     def list_recipes(lib: Lib, q: str | None = None) -> list[LibraryItem]:

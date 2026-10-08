@@ -15,7 +15,7 @@ from pathlib import Path
 from burp.catalog import SynonymIndex, normalize_name
 from burp.config import DEFAULT_DB_PATH
 from burp.ingest import source_key
-from burp.models import ImportedRecipe, IngredientEdit, Recipe
+from burp.models import Enrichment, ImportedRecipe, IngredientEdit, Recipe
 from burp.structure import deduplicate_missing
 
 # Diet tags can be searched with their Italian names too.
@@ -232,6 +232,11 @@ class Library:
             self._check_index(saved, index)
             edits[index] = IngredientEdit(by_eye=True)
         return self.replace(recipe_id, saved.imported.model_copy(update={"edits": edits}))
+
+    def set_enrichment(self, recipe_id: int, enrichment: Enrichment | None) -> SavedRecipe:
+        """Store what "Completa con l'AI" added, or take it away with None."""
+        saved = self._require(recipe_id)
+        return self.replace(recipe_id, saved.imported.model_copy(update={"enrichment": enrichment}))
 
     def clear_edit(self, recipe_id: int, index: int) -> SavedRecipe:
         saved = self._require(recipe_id)

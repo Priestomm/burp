@@ -121,6 +121,8 @@ def test_the_schema_names_every_operation(api):
         "clearEdit",
         "markByEye",
         "markCooked",
+        "fillRecipe",
+        "clearFill",
     }
 
 
@@ -206,3 +208,55 @@ def test_parallel_requests_on_a_real_server(db):
 def test_the_root_points_to_the_dashboard(api):
     body = api.get("/").json()
     assert "localhost:3000" in body["burp"]
+
+
+class FakeFiller:
+    def __init__(self):
+        self.calls = 0
+
+    def fill(self, imported):
+        from burp.fill import Fill, to_enrichment
+
+        self.calls += 1
+        guess = Fill(
+            quantities=[{"index": 3, "quantity": 1, "unit": None, "reason": "guarnizione per 3"}],
+            servings=None,
+            time_minutes=25,
+            steps=["Unisci tofu e farina.", "Forma le palline."],
+            steps_note="aggiunto: scolare gli gnocchi",
+        )
+        return to_enrichment(imported, guess, "claude-haiku-4-5")
+
+
+def test_fill_then_take_it_back(db, media_dir):
+    filler = FakeFiller()
+    api = TestClient(create_app(db, media_dir, filler))
+    before = api.get("/api/recipes/1").json()
+    assert before["filled_by"] is None and before["steps_rewritten"] is False
+
+    recipe = api.post("/api/recipes/1/fill").json()
+    assert filler.calls == 1
+    cipollotto = recipe["ingredients"][3]
+    assert (cipollotto["status"], cipollotto["estimate_reason"]) == (
+        "estimated",
+        "guarnizione per 3",
+    )
+    assert recipe["still_missing"] == ["semi di sesamo"]
+    assert (recipe["time_minutes"], recipe["time_estimated"]) == (25, True)
+    assert (recipe["servings"], recipe["servings_estimated"]) == (3, False)  # from the post
+    assert recipe["steps"] == ["Unisci tofu e farina.", "Forma le palline."]
+    assert recipe["original_steps"] == ["Cuoci le lenticchie."]
+    assert recipe["steps_note"] == "aggiunto: scolare gli gnocchi"
+    assert recipe["filled_by"] == "claude-haiku-4-5"
+
+    recipe = api.delete("/api/recipes/1/fill").json()
+    assert recipe["ingredients"][3]["status"] == "missing"
+    assert recipe["steps"] == ["Cuoci le lenticchie."] and recipe["filled_by"] is None
+
+
+def test_fill_without_an_api_key_says_what_to_do(db, media_dir, monkeypatch):
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    api = TestClient(create_app(db, media_dir))
+    response = api.post("/api/recipes/1/fill")
+    assert response.status_code == 503 and "ANTHROPIC_API_KEY" in response.json()["detail"]
+    assert api.post("/api/recipes/99/fill").status_code == 404

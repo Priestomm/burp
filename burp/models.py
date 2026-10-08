@@ -100,6 +100,33 @@ class IngredientEdit(BaseModel):
     by_eye: bool = False  # "Sì, a occhio": the user accepts not knowing the quantity
 
 
+class Estimate(BaseModel):
+    """A quantity the AI guessed because the post did not say it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    quantity: float = Field(gt=0)
+    unit: str | None = None
+    reason: str = Field(description="Why this amount, in a few words")
+
+
+class Enrichment(BaseModel):
+    """What "Completa con l'AI" added. Kept apart: the post's own text is never replaced, and
+    the user's edits always win over it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    model: str
+    created_at: str
+    quantities: dict[int, Estimate] = Field(default_factory=dict)
+    servings: int | None = Field(default=None, ge=1)
+    time_minutes: int | None = Field(default=None, ge=1)
+    steps: list[str] = Field(default_factory=list, description="The steps, rewritten")
+    steps_note: str | None = Field(
+        default=None, description="What was added to the steps beyond the post, if anything"
+    )
+
+
 class ImportedRecipe(BaseModel):
     """A recipe as saved, with where its text came from and what the user changed."""
 
@@ -111,3 +138,4 @@ class ImportedRecipe(BaseModel):
     edits: dict[int, IngredientEdit] = Field(
         default_factory=dict, description="User changes, by ingredient position"
     )
+    enrichment: Enrichment | None = None
