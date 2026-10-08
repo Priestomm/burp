@@ -55,6 +55,12 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     )
     backfill.add_argument("--dry-run", action="store_true", help="print, do not save")
 
+    serve = commands.add_parser("serve", help="run the API for the web app (local only)")
+    serve.add_argument("--port", type=int, default=8000)
+    serve.add_argument("--reload", action="store_true", help="restart on code changes")
+
+    commands.add_parser("openapi", help="print the API schema (source of the web app types)")
+
     commands.add_parser("bot", help="run the Telegram bot")
 
     args = parser.parse_args(argv)
@@ -84,6 +90,24 @@ def main(
     setup_logging()
     args = parse_args(argv)
     settings = Settings.from_env()
+    if args.command == "serve":
+        import uvicorn
+
+        uvicorn.run(
+            "burp.api:create_app",
+            factory=True,
+            host="127.0.0.1",
+            port=args.port,
+            reload=args.reload,
+        )
+        return 0
+    if args.command == "openapi":
+        import json
+
+        from burp.api import create_app
+
+        print(json.dumps(create_app(":memory:").openapi(), indent=2, ensure_ascii=False))
+        return 0
     if args.command == "bot":
         from burp.bot import main as bot_main
 

@@ -206,6 +206,13 @@ class Library:
         ).fetchone()
         return Cooked(row["n"], row["last"])
 
+    def cooked_all(self) -> dict[int, Cooked]:
+        """Cooked counts of every recipe that was cooked at least once."""
+        rows = self.conn.execute(
+            "SELECT recipe_id, COUNT(*) AS n, MAX(cooked_at) AS last FROM cooked GROUP BY recipe_id"
+        )
+        return {row["recipe_id"]: Cooked(row["n"], row["last"]) for row in rows}
+
     def _edit(self, recipe_id: int, index: int, edit: IngredientEdit) -> SavedRecipe:
         saved = self._require(recipe_id)
         self._check_index(saved, index)

@@ -1,0 +1,179 @@
+"""HTTP API for the web app. Every response model is Pydantic, so the OpenAPI schema it
+publishes is the single source of the TypeScript types in web/ (see `burp openapi`).
+
+Local only for now: it binds to 127.0.0.1 and has no authentication.
+"""
+
+from collections.abc import Iterator
+from pathlib import Path
+from typing import Annotated
+
+from fastapi import Depends, FastAPI, HTTPException
+from pydantic import BaseModel, Field
+
+from burp.catalog import SynonymIndex, load_ingredients
+from burp.config import Settings
+from burp.library import Cooked, Library, SavedRecipe
+from burp.models import Completeness, ContentSource, Course, Diet, Tags
+from burp.view import IngredientView, ingredient_views, missing_names
+
+
+class CookedOut(BaseModel):
+    count: int
+    last: str | None
+
+
+class LibraryItem(BaseModel):
+    id: int
+    title: str
+    nome_riga_1: str
+    nome_riga_2: str | None
+    diet: Diet
+    course: Course | None
+    cuisine: str | None
+    to_clarify: int = Field(description="Quantities still unknown, plus 1 if there are no steps")
+    cooked: CookedOut
+
+
+class RecipeDetail(BaseModel):
+    id: int
+    created_at: str
+    title: str
+    nome_riga_1: str
+    nome_riga_2: str | None
+    descrittore: str | None
+    source_url: str | None
+    author_handle: str | None
+    servings: int | None
+    time_minutes: int | None
+    tags: Tags
+    ingredients: list[IngredientView]
+    steps: list[str]
+    still_missing: list[str] = Field(description="Ingredients whose quantity is still unknown")
+    completeness: Completeness = Field(description="What the post did not say, as imported")
+    content_source: ContentSource
+    cooked: CookedOut
+
+
+class QuantityIn(BaseModel):
+    quantity: float = Field(gt=0)
+    unit: str | None = None
+
+
+class ByEyeIn(BaseModel):
+    indices: list[int] = Field(min_length=1)
+
+
+def to_clarify(saved: SavedRecipe) -> int:
+    return len(missing_names(saved.imported)) + (0 if saved.recipe.steps else 1)
+
+
+def _cooked(cooked: Cooked) -> CookedOut:
+    return CookedOut(count=cooked.count, last=cooked.last)
+
+
+def detail(saved: SavedRecipe, cooked: Cooked) -> RecipeDetail:
+    recipe = saved.recipe
+    return RecipeDetail(
+        id=saved.id,
+        created_at=saved.created_at,
+        title=recipe.title,
+        nome_riga_1=recipe.nome_riga_1,
+        nome_riga_2=recipe.nome_riga_2,
+        descrittore=recipe.descrittore,
+        source_url=recipe.source_url,
+        author_handle=recipe.author_handle,
+        servings=recipe.servings,
+        time_minutes=recipe.time_minutes,
+        tags=recipe.tags,
+        ingredients=ingredient_views(saved.imported),
+        steps=recipe.steps,
+        still_missing=missing_names(saved.imported),
+        completeness=recipe.completeness,
+        content_source=saved.imported.content_source,
+        cooked=_cooked(cooked),
+    )
+
+
+def create_app(db_path: Path | str | None = None) -> FastAPI:
+    path = db_path or Settings.from_env().db_path
+    catalog = SynonymIndex(load_ingredients())
+    app = FastAPI(
+        title="burp!",
+        version="0.1.0",
+        openapi_url="/api/openapi.json",
+        docs_url="/api/docs",
+        redoc_url=None,
+    )
+
+    # SQLite connections cannot cross threads, and FastAPI runs each request in a worker
+    # thread: one short-lived connection per request.
+    def library() -> Iterator[Library]:
+        with Library(path, catalog) as lib:
+            yield lib
+
+    Lib = Annotated[Library, Depends(library)]
+
+    def found(lib: Library, recipe_id: int) -> SavedRecipe:
+        saved = lib.get(recipe_id)
+        if saved is None:
+            raise HTTPException(404, f"Non c'è nessuna ricetta #{recipe_id}.")
+        return saved
+
+    def changed(lib: Library, recipe_id: int, change) -> RecipeDetail:
+        try:
+            saved = change()
+        except KeyError as error:
+            raise HTTPException(404, f"Non c'è nessuna ricetta #{recipe_id}.") from error
+        except IndexError as error:
+            raise HTTPException(404, str(error)) from error
+        return detail(saved, lib.cooked(recipe_id))
+
+    @app.get("/api/recipes", operation_id="listRecipes")
+    def list_recipes(lib: Lib, q: str | None = None) -> list[LibraryItem]:
+        """The library, newest first; `q` keeps recipes where every word is in the title,
+        the tags or the ingredients."""
+        cooked = lib.cooked_all()
+        return [
+            LibraryItem(
+                id=saved.id,
+                title=saved.recipe.title,
+                nome_riga_1=saved.recipe.nome_riga_1,
+                nome_riga_2=saved.recipe.nome_riga_2,
+                diet=saved.recipe.tags.diet,
+                course=saved.recipe.tags.course,
+                cuisine=saved.recipe.tags.cuisine,
+                to_clarify=to_clarify(saved),
+                cooked=_cooked(cooked.get(saved.id, Cooked(0, None))),
+            )
+            for saved in lib.search(text=q)
+        ]
+
+    @app.get("/api/recipes/{recipe_id}", operation_id="getRecipe")
+    def get_recipe(lib: Lib, recipe_id: int) -> RecipeDetail:
+        return detail(found(lib, recipe_id), lib.cooked(recipe_id))
+
+    @app.put("/api/recipes/{recipe_id}/ingredients/{index}", operation_id="setQuantity")
+    def set_quantity(lib: Lib, recipe_id: int, index: int, body: QuantityIn) -> RecipeDetail:
+        """ "Li scrivo io": the user writes a quantity the post did not give."""
+        return changed(
+            lib, recipe_id, lambda: lib.set_quantity(recipe_id, index, body.quantity, body.unit)
+        )
+
+    @app.delete("/api/recipes/{recipe_id}/ingredients/{index}/edit", operation_id="clearEdit")
+    def clear_edit(lib: Lib, recipe_id: int, index: int) -> RecipeDetail:
+        return changed(lib, recipe_id, lambda: lib.clear_edit(recipe_id, index))
+
+    @app.post("/api/recipes/{recipe_id}/by-eye", operation_id="markByEye")
+    def mark_by_eye(lib: Lib, recipe_id: int, body: ByEyeIn) -> RecipeDetail:
+        """ "Sì, a occhio": these quantities stay unknown, and that is fine."""
+        return changed(lib, recipe_id, lambda: lib.mark_by_eye(recipe_id, body.indices))
+
+    @app.post("/api/recipes/{recipe_id}/cooked", operation_id="markCooked")
+    def mark_cooked(lib: Lib, recipe_id: int) -> CookedOut:
+        try:
+            return _cooked(lib.cook(recipe_id))
+        except KeyError as error:
+            raise HTTPException(404, f"Non c'è nessuna ricetta #{recipe_id}.") from error
+
+    return app
