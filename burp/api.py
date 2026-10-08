@@ -66,7 +66,8 @@ class RecipeDetail(BaseModel):
     original_steps: list[str] = Field(description="As in the post")
     steps_rewritten: bool
     steps_note: str | None = Field(description="What the AI added to the steps")
-    filled_by: str | None = Field(description="Model of 'Completa con l'AI', if used")
+    filled_by: str | None = Field(description="Model of 'Completa con l'AI', if shown")
+    fill_saved: bool = Field(description="An AI completion is stored, shown or hidden")
     still_missing: list[str] = Field(description="Ingredients whose quantity is still unknown")
     completeness: Completeness = Field(description="What the post did not say, as imported")
     content_source: ContentSource
@@ -107,7 +108,7 @@ def _photo(media: Media | None) -> PhotoOut | None:
 
 def detail(lib: Library, saved: SavedRecipe) -> RecipeDetail:
     recipe = saved.recipe
-    extra = saved.imported.enrichment
+    extra = saved.imported.shown_enrichment
     rewritten = bool(extra and extra.steps)
     return RecipeDetail(
         id=saved.id,
@@ -129,6 +130,7 @@ def detail(lib: Library, saved: SavedRecipe) -> RecipeDetail:
         steps_rewritten=rewritten,
         steps_note=extra.steps_note if extra else None,
         filled_by=extra.model if extra else None,
+        fill_saved=saved.imported.enrichment is not None,
         still_missing=missing_names(saved.imported),
         completeness=recipe.completeness,
         content_source=saved.imported.content_source,
@@ -206,9 +208,12 @@ def create_app(
         return filler
 
     @app.post("/api/recipes/{recipe_id}/fill", operation_id="fillRecipe")
-    def fill_recipe(lib: Lib, recipe_id: int) -> RecipeDetail:
-        """ "Completa con l'AI": estimate what the post did not say and rewrite the steps."""
+    def fill_recipe(lib: Lib, recipe_id: int, regenerate: bool = False) -> RecipeDetail:
+        """Completa con l'AI: estimate what the post did not say and rewrite the steps.
+        A stored completion is shown again for free; `regenerate` asks the model anew."""
         saved = found(lib, recipe_id)
+        if saved.imported.enrichment is not None and not regenerate:
+            return detail(lib, lib.show_enrichment(recipe_id, True))
         try:
             enrichment = get_filler().fill(saved.imported)
         except (anthropic.APIError, RuntimeError) as error:
@@ -217,8 +222,9 @@ def create_app(
 
     @app.delete("/api/recipes/{recipe_id}/fill", operation_id="clearFill")
     def clear_fill(lib: Lib, recipe_id: int) -> RecipeDetail:
-        """ "Togli le stime": back to what the post says, plus the user's own edits."""
-        return changed(lib, recipe_id, lambda: lib.set_enrichment(recipe_id, None))
+        """Togli le stime: back to what the post says, plus the user's own edits. The
+        completion stays stored, hidden, so showing it again needs no new call."""
+        return changed(lib, recipe_id, lambda: lib.show_enrichment(recipe_id, False))
 
     @app.get("/api/recipes", operation_id="listRecipes")
     def list_recipes(lib: Lib, q: str | None = None) -> list[LibraryItem]:

@@ -513,6 +513,15 @@ button:disabled {
   background: var(--yolk);
 }
 
+.regen {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 13px;
+  text-decoration: underline;
+  color: var(--mute);
+}
+
 .aiNote {
   font-size: 13px;
   color: var(--mute);

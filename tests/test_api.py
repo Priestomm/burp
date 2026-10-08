@@ -260,3 +260,36 @@ def test_fill_without_an_api_key_says_what_to_do(db, media_dir, monkeypatch):
     response = api.post("/api/recipes/1/fill")
     assert response.status_code == 503 and "ANTHROPIC_API_KEY" in response.json()["detail"]
     assert api.post("/api/recipes/99/fill").status_code == 404
+
+
+def test_a_completion_is_stored_and_shown_again_without_a_new_call(db, media_dir):
+    filler = FakeFiller()
+    api = TestClient(create_app(db, media_dir, filler))
+    api.post("/api/recipes/1/fill")
+    hidden = api.delete("/api/recipes/1/fill").json()
+    assert hidden["filled_by"] is None and hidden["fill_saved"] is True
+    assert hidden["ingredients"][3]["status"] == "missing"
+
+    shown = api.post("/api/recipes/1/fill").json()
+    assert filler.calls == 1  # the stored answer came back, no new call
+    assert shown["ingredients"][3]["status"] == "estimated"
+    assert shown["filled_by"] == "claude-haiku-4-5"
+
+
+def test_regenerate_asks_again_from_the_post(db, media_dir):
+    seen = []
+
+    class Recorder(FakeFiller):
+        def fill(self, imported):
+            from burp.view import missing_names
+
+            seen.append(missing_names(imported.without_enrichment()))
+            return super().fill(imported)
+
+    filler = Recorder()
+    api = TestClient(create_app(db, media_dir, filler))
+    api.post("/api/recipes/1/fill")
+    api.post("/api/recipes/1/fill", params={"regenerate": True})
+    assert filler.calls == 2
+    # The second estimate still sees the gaps, not the first estimate's guesses.
+    assert seen == [["cipollotto", "semi di sesamo"], ["cipollotto", "semi di sesamo"]]

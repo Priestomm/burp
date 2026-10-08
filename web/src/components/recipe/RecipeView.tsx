@@ -82,10 +82,11 @@ export function RecipeView({ recipe }: { recipe: RecipeDetail }) {
     });
   }
 
-  function fill() {
-    setFilling(true);
+  function fill(regenerate = false) {
+    // A stored answer comes back instantly; only a new one takes a few seconds.
+    setFilling(regenerate || !recipe.fill_saved);
     startTransition(async () => {
-      const result = await fillWithAI(recipe.id);
+      const result = await fillWithAI(recipe.id, regenerate);
       setFilling(false);
       setEditing(false);
       setStatus(result.ok ? "Fatto: stime e passaggi riscritti, segnati come stima." : result.error);
@@ -152,10 +153,19 @@ export function RecipeView({ recipe }: { recipe: RecipeDetail }) {
             <button type="button" className={`${styles.aiOff} cond`} onClick={unfill} disabled={pending}>
               Togli le stime
             </button>
+            <button
+              type="button"
+              className={styles.regen}
+              onClick={() => fill(true)}
+              disabled={pending}
+              title="Chiede una stima nuova al modello (costa una chiamata)"
+            >
+              {filling ? "rigenero…" : "rigenera"}
+            </button>
           </>
         ) : (
-          <button type="button" className={`${styles.ai} cond`} onClick={fill} disabled={pending}>
-            {filling ? "Sto completando…" : "✦ Completa con l'AI"}
+          <button type="button" className={`${styles.ai} cond`} onClick={() => fill()} disabled={pending}>
+            {filling ? "Sto completando…" : recipe.fill_saved ? "✦ Rimetti le stime" : "✦ Completa con l'AI"}
           </button>
         )}
       </div>
@@ -215,8 +225,8 @@ export function RecipeView({ recipe }: { recipe: RecipeDetail }) {
                   Sì, a occhio
                 </button>
                 {!recipe.filled_by && (
-                  <button type="button" className={`${styles.aiSmall} cond`} onClick={fill} disabled={pending}>
-                    {filling ? "Stimo…" : "Stimale con l'AI"}
+                  <button type="button" className={`${styles.aiSmall} cond`} onClick={() => fill()} disabled={pending}>
+                    {filling ? "Stimo…" : recipe.fill_saved ? "Rimetti le stime" : "Stimale con l'AI"}
                   </button>
                 )}
               </div>

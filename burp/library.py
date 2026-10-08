@@ -238,6 +238,15 @@ class Library:
         saved = self._require(recipe_id)
         return self.replace(recipe_id, saved.imported.model_copy(update={"enrichment": enrichment}))
 
+    def show_enrichment(self, recipe_id: int, shown: bool) -> SavedRecipe:
+        """Hide or show again the stored AI additions, without asking the model."""
+        saved = self._require(recipe_id)
+        enrichment = saved.imported.enrichment
+        if enrichment is None:
+            return saved
+        update = {"enrichment": enrichment.model_copy(update={"active": shown})}
+        return self.replace(recipe_id, saved.imported.model_copy(update=update))
+
     def clear_edit(self, recipe_id: int, index: int) -> SavedRecipe:
         saved = self._require(recipe_id)
         edits = {i: e for i, e in saved.imported.edits.items() if i != index}

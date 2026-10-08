@@ -113,3 +113,35 @@ def test_the_word_null_as_a_unit_means_no_unit():
     # Seen live with Haiku: {"unit": "null"} for 2 cipollotti.
     guesses = fill(quantities=[{"index": 2, "quantity": 2, "unit": "null", "reason": "x"}])
     assert to_enrichment(imported(), guesses, "m").quantities[2].unit is None
+
+
+def test_a_new_estimate_starts_from_the_post_not_the_old_estimate():
+    old = Enrichment(
+        model="m",
+        created_at="2026-10-08T12:00:00+00:00",
+        quantities={2: Estimate(quantity=5, unit=None, reason="vecchia")},
+    )
+    recipe = imported(enrichment=old)
+    assert "2. cipollotto: 5" in describe(recipe)  # what the page shows
+    enrichment = to_enrichment(recipe, fill(), "m")
+    assert enrichment.quantities.keys() == {2, 3}  # both still count as gaps
+
+    calls = []
+
+    def parse(**kwargs):
+        calls.append(kwargs)
+        return SimpleNamespace(parsed_output=fill(), stop_reason="end_turn")
+
+    client = SimpleNamespace(messages=SimpleNamespace(parse=parse))
+    ClaudeFiller(client, "m").fill(recipe)
+    assert "cipollotto: ?" in calls[0]["messages"][0]["content"]
+
+
+def test_hidden_estimates_are_not_shown():
+    hidden = Enrichment(
+        model="m",
+        created_at="2026-10-08T12:00:00+00:00",
+        quantities={2: Estimate(quantity=1, unit=None, reason="x")},
+        active=False,
+    )
+    assert ingredient_views(imported(enrichment=hidden))[2].status == "missing"

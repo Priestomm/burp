@@ -35,7 +35,8 @@ def _view(index: int, item: RecipeIngredient, imported: ImportedRecipe) -> Ingre
     edited = edit is not None and edit.quantity is not None
     quantity = edit.quantity if edited else item.quantity
     unit = edit.unit if edited else item.unit
-    estimate = imported.enrichment.quantities.get(index) if imported.enrichment else None
+    shown = imported.shown_enrichment
+    estimate = shown.quantities.get(index) if shown else None
     reason = None
     if quantity is not None:
         status: QuantityStatus = "given"

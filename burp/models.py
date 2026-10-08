@@ -125,6 +125,8 @@ class Enrichment(BaseModel):
     steps_note: str | None = Field(
         default=None, description="What was added to the steps beyond the post, if anything"
     )
+    # "Togli le stime" hides them and keeps them: showing them again costs no new call.
+    active: bool = True
 
 
 class ImportedRecipe(BaseModel):
@@ -139,3 +141,12 @@ class ImportedRecipe(BaseModel):
         default_factory=dict, description="User changes, by ingredient position"
     )
     enrichment: Enrichment | None = None
+
+    @property
+    def shown_enrichment(self) -> Enrichment | None:
+        """The AI's additions, if the user has them on."""
+        return self.enrichment if self.enrichment and self.enrichment.active else None
+
+    def without_enrichment(self) -> "ImportedRecipe":
+        """The post plus the user's edits: what a new estimate starts from."""
+        return self.model_copy(update={"enrichment": None})

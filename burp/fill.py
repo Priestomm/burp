@@ -93,6 +93,7 @@ class ClaudeFiller:
         self.model = model
 
     def fill(self, imported: ImportedRecipe) -> Enrichment:
+        imported = imported.without_enrichment()  # a new estimate starts from the post
         response = self.client.messages.parse(
             model=self.model,
             max_tokens=4000,
@@ -113,6 +114,7 @@ def _unit(unit: str | None) -> str | None:
 
 def to_enrichment(imported: ImportedRecipe, fill: Fill, model: str) -> Enrichment:
     """Keep only what fills a real gap: the model may not overwrite what the post says."""
+    imported = imported.without_enrichment()
     missing = {v.index for v in ingredient_views(imported) if v.status == "missing"}
     recipe = imported.recipe
     return Enrichment(

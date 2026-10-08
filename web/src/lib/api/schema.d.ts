@@ -15,12 +15,14 @@ export interface paths {
         put?: never;
         /**
          * Fill Recipe
-         * @description "Completa con l'AI": estimate what the post did not say and rewrite the steps.
+         * @description Completa con l'AI: estimate what the post did not say and rewrite the steps.
+         *     A stored completion is shown again for free; `regenerate` asks the model anew.
          */
         post: operations["fillRecipe"];
         /**
          * Clear Fill
-         * @description "Togli le stime": back to what the post says, plus the user's own edits.
+         * @description Togli le stime: back to what the post says, plus the user's own edits. The
+         *     completion stays stored, hidden, so showing it again needs no new call.
          */
         delete: operations["clearFill"];
         options?: never;
@@ -305,9 +307,14 @@ export interface components {
             steps_note: string | null;
             /**
              * Filled By
-             * @description Model of 'Completa con l'AI', if used
+             * @description Model of 'Completa con l'AI', if shown
              */
             filled_by: string | null;
+            /**
+             * Fill Saved
+             * @description An AI completion is stored, shown or hidden
+             */
+            fill_saved: boolean;
             /**
              * Still Missing
              * @description Ingredients whose quantity is still unknown
@@ -367,7 +374,9 @@ export type $defs = Record<string, never>;
 export interface operations {
     fillRecipe: {
         parameters: {
-            query?: never;
+            query?: {
+                regenerate?: boolean;
+            };
             header?: never;
             path: {
                 recipe_id: number;
