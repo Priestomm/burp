@@ -62,7 +62,7 @@ Chiavi e token si leggono dalle variabili d'ambiente o da `.env`, che git ignora
 | Variabile | A cosa serve |
 | --- | --- |
 | `ANTHROPIC_API_KEY` | obbligatoria per importare |
-| `BURP_MODEL` | modello usato (default `claude-opus-5-5`) |
+| `BURP_MODEL` | modello usato (default `claude-sonnet-5-5`) |
 | `BURP_FAST_MODEL` | modello per i lavori piccoli: dividere i titoli, scegliere il fotogramma, «Completa con l'AI» (default `claude-haiku-5-5`) |
 | `BURP_DB_PATH` | dove sta la libreria (default `data/burp.db`) |
 | `BURP_MEDIA_DIR` | dove stanno le foto dei piatti (default `data/media`) |

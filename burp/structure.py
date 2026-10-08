@@ -13,6 +13,7 @@ import anthropic
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from burp.catalog import SynonymIndex, normalize_name, stricter_than
+from burp.config import FAST_OUTPUT
 from burp.models import Completeness, CuisineWord, Recipe, RecipeIngredient, Tags
 
 log = logging.getLogger(__name__)
@@ -142,6 +143,7 @@ def split_title(title: str, client: anthropic.Anthropic, model: str) -> TitleSpl
         + TITLE_PROMPT,
         messages=[{"role": "user", "content": f"Titolo: {title}"}],
         output_format=TitleSplit,
+        output_config=FAST_OUTPUT,
     )
     if response.parsed_output is None:
         raise StructuringError(f"no title split for {title!r} ({response.stop_reason})")
@@ -180,6 +182,7 @@ def cuisine_word(recipe: Recipe, client: anthropic.Anthropic, model: str) -> Cui
         system=f"Rispondi per questa ricetta secondo la regola:\n{WORD_PROMPT}",
         messages=[{"role": "user", "content": facts}],
         output_format=WordAnswer,
+        output_config=FAST_OUTPUT,
     )
     answer = response.parsed_output
     return checked_word(answer.parola_cucina) if answer else None

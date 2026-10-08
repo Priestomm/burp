@@ -6,9 +6,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).parent.parent
-DEFAULT_MODEL = "claude-opus-5-5"
+DEFAULT_MODEL = "claude-sonnet-5-5"
 # Small, cheap jobs: splitting a title, picking the best video frame.
 DEFAULT_FAST_MODEL = "claude-haiku-5-5"
+# Those jobs need little reasoning; Haiku 5.5 would otherwise think at "medium".
+FAST_OUTPUT = {"effort": "low"}
 DEFAULT_DB_PATH = ROOT_DIR / "data" / "burp.db"
 DEFAULT_MEDIA_DIR = ROOT_DIR / "data" / "media"
 

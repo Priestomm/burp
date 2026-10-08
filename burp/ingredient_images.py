@@ -29,6 +29,7 @@ from PIL import Image
 from pydantic import BaseModel, ConfigDict, Field
 
 from burp.catalog import normalize_name
+from burp.config import FAST_OUTPUT
 from burp.cutout import BackgroundRemover, make_cutout
 from burp.photocopy import INGREDIENT, INK
 
@@ -208,6 +209,7 @@ class ClaudePlanner:
             system=PLAN_PROMPT,
             messages=[{"role": "user", "content": "\n".join(f"- {n}" for n in names)}],
             output_format=Plans,
+            output_config=FAST_OUTPUT,
         )
         plans = response.parsed_output.items if response.parsed_output else []
         return {plan.name: plan for plan in plans if plan.name in names}
@@ -228,6 +230,7 @@ class ClaudeChooser:
             max_tokens=500,
             messages=[{"role": "user", "content": content}],
             output_format=Choice,
+            output_config=FAST_OUTPUT,
         )
         if response.parsed_output is None:
             raise RuntimeError(f"no choice for {name!r} ({response.stop_reason})")

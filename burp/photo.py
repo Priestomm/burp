@@ -25,6 +25,7 @@ import anthropic
 from PIL import Image
 from pydantic import BaseModel, ConfigDict, Field
 
+from burp.config import FAST_OUTPUT
 from burp.frames import extract_frames, tail_weighted
 from burp.halftone import halftone
 from burp.library import Media
@@ -77,6 +78,7 @@ class ClaudeFramePicker:
             max_tokens=1000,
             messages=[{"role": "user", "content": content}],
             output_format=Pick,
+            output_config=FAST_OUTPUT,
         )
         if response.parsed_output is None:
             raise RuntimeError(f"no frame choice ({response.stop_reason})")

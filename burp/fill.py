@@ -12,6 +12,7 @@ from typing import Protocol
 import anthropic
 from pydantic import BaseModel, ConfigDict, Field
 
+from burp.config import FAST_OUTPUT
 from burp.models import Enrichment, Estimate, ImportedRecipe
 from burp.view import ingredient_views
 
@@ -100,6 +101,7 @@ class ClaudeFiller:
             system=SYSTEM,
             messages=[{"role": "user", "content": describe(imported)}],
             output_format=Fill,
+            output_config=FAST_OUTPUT,
         )
         if response.parsed_output is None:
             raise RuntimeError(f"il modello non ha completato la ricetta ({response.stop_reason})")
