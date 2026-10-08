@@ -5,12 +5,14 @@ any process can run it: `burp worker`, or the thread the bot starts for itself.
 """
 
 import contextlib
+import importlib.util
 import logging
 import threading
 from pathlib import Path
 
 from PIL import Image
 
+from burp.cutout import BackgroundRemover, RembgRemover, make_cutout
 from burp.library import Job, Library
 from burp.photo import FramePicker, make_photo, stash_inputs, user_media
 from burp.photocopy import DISH, photocopy
@@ -37,7 +39,17 @@ def queue_photo(
     return library.enqueue(PHOTO, recipe_id, inputs)
 
 
-def run_once(library: Library, picker: FramePicker, media_dir: Path) -> bool:
+def default_remover() -> BackgroundRemover | None:
+    """rembg if the optional `cutout` extra is installed; without it, no cut-outs."""
+    return RembgRemover() if importlib.util.find_spec("rembg") else None
+
+
+def run_once(
+    library: Library,
+    picker: FramePicker,
+    media_dir: Path,
+    remover: BackgroundRemover | None = None,
+) -> bool:
     """Run the oldest queued job. Returns False when there was nothing to do."""
     job = library.claim_job()
     if job is None:
@@ -49,7 +61,7 @@ def run_once(library: Library, picker: FramePicker, media_dir: Path) -> bool:
         if job.kind == PHOTO:
             note = _run_photo(library, job, saved, picker, media_dir)
         elif job.kind == ZINE:
-            note = _run_zine(library, job.recipe_id, media_dir)
+            note = _run_zine(library, job.recipe_id, media_dir, remover)
         else:
             raise ValueError(f"unknown job kind {job.kind!r}")
         library.finish_job(job.id, ok=True, note=note)
@@ -93,18 +105,34 @@ def landscape(image: Image.Image, ratio: float = SHEET_RATIO) -> Image.Image:
     return image.crop((0, top, width, top + new))
 
 
-def _run_zine(library: Library, recipe_id: int, media_dir: Path) -> str:
+def _run_zine(
+    library: Library, recipe_id: int, media_dir: Path, remover: BackgroundRemover | None
+) -> str:
     """Prints for the Zine theme, from the dish photo already chosen for Adesivi."""
     media = library.media(recipe_id)
     if media is None:
         return "nessuna foto del piatto da fotocopiare"
     with Image.open(media_dir / media.original) as original:
-        sheet = landscape(original)
-    printed = photocopy(sheet, width=900, exposure=DISH, seed=recipe_id)
+        frame = original.convert("RGB")
+    printed = photocopy(landscape(frame), width=900, exposure=DISH, seed=recipe_id)
     target = f"{recipe_id}/photocopy.png"
     printed.save(media_dir / target, optimize=True)
+    notes = ["fotocopia del piatto"]
+
+    if remover is None:
+        notes.append("ritaglio saltato: installa l'extra cutout")
+    else:
+        try:
+            cut = make_cutout(frame, remover, width=420, exposure=DISH, seed=recipe_id)
+        except ValueError as error:  # no clear object in the frame
+            notes.append(f"nessun ritaglio ({error})")
+        else:
+            cutout = f"{recipe_id}/cutout.png"
+            cut.save(media_dir / cutout, optimize=True)
+            library.set_zine_media(recipe_id, cutout=cutout)
+            notes.append("ritaglio del piatto")
     library.set_zine_media(recipe_id, photocopy=target)
-    return "fotocopia del piatto"
+    return ", ".join(notes)
 
 
 def _discard_inputs(media_dir: Path, inputs: list[str]) -> None:

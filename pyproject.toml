@@ -17,6 +17,9 @@ burp = "burp.cli:main"
 
 [project.optional-dependencies]
 media = ["yt-dlp>=2025.1.1", "faster-whisper>=1.1.0", "av>=14.0.0"]
+cutout = [
+    "rembg[cpu]>=2.0.85",
+]
 
 [build-system]
 requires = ["hatchling"]

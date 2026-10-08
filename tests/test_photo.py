@@ -251,3 +251,23 @@ def test_the_photocopy_sheet_is_landscape_whatever_the_frame():
     for size in [(1080, 1920), (1920, 1080), (1000, 1000)]:
         out = landscape(Image.new("RGB", size))
         assert abs(out.width / out.height - SHEET_RATIO) < 0.01
+
+
+def test_zine_job_makes_the_dish_cutout_when_a_remover_is_there(library, saved, tmp_path):
+    from tests.test_scissors import ColourRemover
+
+    library.enqueue(PHOTO, saved.id, stash_inputs(saved.id, [DISH], tmp_path))
+    run_once(library, FakePicker(good()), tmp_path, ColourRemover())  # photo
+    run_once(library, FakePicker(good()), tmp_path, ColourRemover())  # zine
+    media = library.media(saved.id)
+    assert media.cutout == f"{saved.id}/cutout.png" and (tmp_path / media.cutout).exists()
+    assert "ritaglio del piatto" in library.jobs(saved.id)[-1].note
+
+
+def test_zine_job_without_rembg_still_photocopies(library, saved, tmp_path):
+    library.enqueue(PHOTO, saved.id, stash_inputs(saved.id, [DISH], tmp_path))
+    run_once(library, FakePicker(good()), tmp_path)
+    run_once(library, FakePicker(good()), tmp_path)
+    media = library.media(saved.id)
+    assert media.photocopy and media.cutout is None
+    assert "installa l'extra cutout" in library.jobs(saved.id)[-1].note

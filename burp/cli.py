@@ -27,7 +27,7 @@ from burp.pipeline import import_post
 from burp.render import full_text, one_line, summarize
 from burp.structure import split_title
 from burp.transcribe import FasterWhisperTranscriber
-from burp.worker import ZINE, queue_photo, run_forever, run_once
+from burp.worker import ZINE, default_remover, queue_photo, run_forever, run_once
 
 
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
@@ -326,14 +326,15 @@ def run_worker(
             return 2
         client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
     picker = ClaudeFramePicker(client, settings.fast_model)
+    remover = default_remover()
     if args.once:
-        while run_once(library, picker, settings.media_dir):
+        while run_once(library, picker, settings.media_dir, remover):
             pass
         return 0
     print("worker avviato: Ctrl+C per fermarlo")
     stop = threading.Event()
     try:
-        run_forever(lambda: library, picker, settings.media_dir, stop)
+        run_forever(lambda: library, picker, settings.media_dir, stop, remover)
     except KeyboardInterrupt:
         stop.set()
     return 0
