@@ -18,7 +18,8 @@ export function DietStar({ diet, lines }: { diet: string; lines: string[] }) {
         {diet}
       </text>
       {lines.map((line, i) => (
-        <text key={line} x={96} y={124 + i * 18} className={styles.body} fontSize={15} fill="var(--cream)">
+        // Small text on tomato is ink: cream reaches only 3.8:1 there, fine for big words only.
+        <text key={line} x={96} y={124 + i * 18} className={styles.body} fontSize={15} fill="var(--ink)">
           {line}
         </text>
       ))}
@@ -69,7 +70,7 @@ export function BurpStamp({ date, className }: { date: string; className?: strin
       <text x={94} y={66} className={styles.cond} fontSize={58} fill="var(--cream)">
         BURP!
       </text>
-      <text x={94} y={88} className={styles.body} fontSize={14} fill="var(--cream)">
+      <text x={94} y={88} className={styles.body} fontSize={14} fill="var(--ink)">
         {date}
       </text>
     </Sticker>
@@ -77,7 +78,8 @@ export function BurpStamp({ date, className }: { date: string; className?: strin
 }
 
 const SHEET_FILLS = ["var(--cream)", "var(--yolk)", "var(--sky)", "var(--tomato)", "var(--ink)"];
-const DARK_FILLS = new Set(["var(--tomato)", "var(--ink)"]);
+// Cream text only on ink: on tomato it reaches 3.8:1, too little for small type.
+const DARK_FILLS = new Set(["var(--ink)"]);
 
 /**
  * Stable look for a recipe on the sticker sheet: same id, same shape and colour, always.
@@ -136,7 +138,7 @@ export function RecipeSticker({
       {cooked && (
         <g transform={`translate(${w - 14} 2) rotate(12)`}>
           <rect x={-22} y={-9} width={44} height={18} rx={9} fill="var(--tomato)" stroke="var(--ink)" strokeWidth={1.6} />
-          <text x={0} y={4.5} className={styles.cond} fontSize={12} fill="var(--cream)">
+          <text x={0} y={4.5} className={styles.cond} fontSize={12} fill="var(--ink)">
             BURP!
           </text>
         </g>

@@ -12,11 +12,10 @@ describe("stickerLook", () => {
     expect(new Set(looks.map((l) => l.fill)).size).toBe(5);
   });
 
-  it("writes in cream on dark stickers", () => {
+  it("writes in cream only on ink stickers, where it is readable", () => {
     for (let id = 0; id < 20; id++) {
       const look = stickerLook(id);
-      const dark = look.fill === "var(--ink)" || look.fill === "var(--tomato)";
-      expect(look.ink).toBe(dark ? "var(--cream)" : "var(--ink)");
+      expect(look.ink).toBe(look.fill === "var(--ink)" ? "var(--cream)" : "var(--ink)");
     }
   });
 });

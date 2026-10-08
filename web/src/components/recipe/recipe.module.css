@@ -341,7 +341,7 @@ button:disabled {
   border: 2px solid var(--ink);
   border-radius: 999px;
   background: var(--tomato);
-  color: var(--cream);
+  color: var(--ink); /* 4.8:1; cream would be 3.8:1 at this size */
   font-size: 16px;
   transform: rotate(-4deg);
   white-space: nowrap;
