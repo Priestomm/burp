@@ -1,0 +1,35 @@
+.marker {
+  display: block;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.marker path {
+  fill: none;
+  stroke: var(--marker, #2445e8);
+  stroke-width: var(--w, 4px);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* The pen writes each stroke in turn, about 0.6 s in all. */
+.draw path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: write 0.6s ease-out forwards;
+  animation-delay: calc(var(--i) * 0.07s);
+}
+
+@keyframes write {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .draw path {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
