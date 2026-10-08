@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).parent.parent
 DEFAULT_MODEL = "claude-opus-5-5"
 # Small, cheap jobs: splitting a title, picking the best video frame.
-DEFAULT_FAST_MODEL = "claude-haiku-4-5"
+DEFAULT_FAST_MODEL = "claude-haiku-5-5"
 DEFAULT_DB_PATH = ROOT_DIR / "data" / "burp.db"
 DEFAULT_MEDIA_DIR = ROOT_DIR / "data" / "media"
 

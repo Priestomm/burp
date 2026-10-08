@@ -62,7 +62,7 @@ Chiavi e token si leggono dalle variabili d'ambiente o da `.env`, che git ignora
 | --- | --- |
 | `ANTHROPIC_API_KEY` | obbligatoria per importare |
 | `BURP_MODEL` | modello usato (default `claude-opus-5-5`) |
-| `BURP_FAST_MODEL` | modello per i lavori piccoli: dividere i titoli, scegliere il fotogramma (default `claude-haiku-4-5`) |
+| `BURP_FAST_MODEL` | modello per i lavori piccoli: dividere i titoli, scegliere il fotogramma, «Completa con l'AI» (default `claude-haiku-5-5`) |
 | `BURP_DB_PATH` | dove sta la libreria (default `data/burp.db`) |
 | `BURP_MEDIA_DIR` | dove stanno le foto dei piatti (default `data/media`) |
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_USER_IDS` | bot Telegram |
@@ -162,7 +162,7 @@ cd web && pnpm dev         # http://localhost:3000
 
 - **Libreria** (`/`): un foglio di adesivi, uno per ricetta, con forma e colore fissati dal suo numero e quanti dati restano da chiarire; ricerca a parole libere.
 - **Ricetta** (`/ricette/3`): nome in due righe enormi, aggettivi nel fumetto con la mascotte, foto a retino con gli adesivi della dieta e delle porzioni, avviso per le quantità mancanti ("Li scrivo io" / "Sì, a occhio"), selettore da 1 a 4 persone con le dosi ricalcolate, procedimento e "L'ho cucinata".
-- **Completa con l'AI**: il pulsante in cima alla ricetta (o «Stimale con l'AI» nell'avviso) chiede al modello veloce (`BURP_FAST_MODEL`, Haiku 4.5) di stimare le quantità che il reel non dice, porzioni e tempo se mancano, e di riscrivere i passaggi in modo più chiaro, dicendo cosa ha aggiunto. Le stime restano separate: compaiono con l'adesivo «stima», le tue correzioni vincono sempre, «Togli le stime» torna al reel e «Come nel reel» mostra i passaggi originali. Circa 0,5-1¢ a clic.
+- **Completa con l'AI**: il pulsante in cima alla ricetta (o «Stimale con l'AI» nell'avviso) chiede al modello veloce (`BURP_FAST_MODEL`, Haiku 5.5) di stimare le quantità che il reel non dice, porzioni e tempo se mancano, e di riscrivere i passaggi in modo più chiaro, dicendo cosa ha aggiunto. Le stime restano separate: compaiono con l'adesivo «stima», le tue correzioni vincono sempre, «Togli le stime» torna al reel e «Come nel reel» mostra i passaggi originali. Circa 0,1¢ a clic.
 - **Adesivi** (`/adesivi`): tutti i componenti SVG su un foglio.
 
 Per ora gira solo in locale e senza login: prima di metterla online servono autenticazione e un hosting per API e foto.

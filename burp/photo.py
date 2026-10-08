@@ -53,7 +53,9 @@ class FramePicker(Protocol):
 PICK_PROMPT = """\
 Queste immagini vengono da un video di cucina o da screenshot di un post. Scegli quella in cui \
 il piatto finito si vede meglio: intero, nitido, ben illuminato, senza mani o testo sopra. \
-Scarta ingredienti crudi, passaggi a metà, schermate di solo testo e volti. Se nessuna mostra \
+Deve essere una fotografia vera: scarta illustrazioni, disegni e grafiche. \
+Scarta anche ingredienti crudi, passaggi a metà, schermate di solo testo e volti. \
+Se nessuna mostra \
 il piatto finito, rispondi best = 0. confidence: quanto sei sicuro che la scelta mostri davvero \
 il piatto finito (0-1). alt: descrivi in italiano cosa si vede nell'immagine scelta, in una \
 frase, per chi non vede la foto."""
