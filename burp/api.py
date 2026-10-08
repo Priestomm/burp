@@ -18,7 +18,7 @@ from burp.config import Settings
 from burp.fill import ClaudeFiller, Filler
 from burp.library import Cooked, Library, Media, SavedRecipe
 from burp.models import Completeness, ContentSource, Course, Diet, Tags
-from burp.view import IngredientView, ingredient_views, missing_names
+from burp.view import IngredientImage, IngredientView, ingredient_views, missing_names
 
 
 class CookedOut(BaseModel):
@@ -123,8 +123,38 @@ def _photo(media: Media | None) -> PhotoOut | None:
     )
 
 
+def _with_pictures(lib: Library, views: list[IngredientView]) -> tuple[list, list[Attribution]]:
+    """Each ingredient with its cut-out, if there is one, and the credits they need."""
+    credits: dict[str, Attribution] = {}
+    out = []
+    pexels = False
+    for view in views:
+        picture = lib.ingredient_picture(view.name)
+        if picture is None or not picture.found:
+            out.append(view)
+            continue
+        out.append(
+            view.model_copy(
+                update={"image": IngredientImage(src=f"/api/media/{picture.path}", alt=picture.alt)}
+            )
+        )
+        if picture.source == "pexels":
+            pexels = True
+            text = f"{picture.author} su Pexels"
+        else:
+            text = f"{view.name}: Open Food Facts, {picture.license}"
+        credits[picture.page_url] = Attribution(text=text, url=picture.page_url)
+    if pexels:
+        # Pexels asks for a visible link to Pexels besides the photographers' credits.
+        credits["https://www.pexels.com"] = Attribution(
+            text="Foto fornite da Pexels", url="https://www.pexels.com"
+        )
+    return out, list(credits.values())
+
+
 def detail(lib: Library, saved: SavedRecipe) -> RecipeDetail:
     recipe = saved.recipe
+    ingredients, attributions = _with_pictures(lib, ingredient_views(saved.imported))
     extra = saved.imported.shown_enrichment
     rewritten = bool(extra and extra.steps)
     return RecipeDetail(
@@ -141,7 +171,8 @@ def detail(lib: Library, saved: SavedRecipe) -> RecipeDetail:
         time_minutes=recipe.time_minutes or (extra.time_minutes if extra else None),
         time_estimated=recipe.time_minutes is None and bool(extra and extra.time_minutes),
         tags=recipe.tags,
-        ingredients=ingredient_views(saved.imported),
+        ingredients=ingredients,
+        attributions=attributions,
         steps=extra.steps if rewritten else recipe.steps,
         original_steps=recipe.steps,
         steps_rewritten=rewritten,

@@ -21,13 +21,21 @@ from burp.catalog import SynonymIndex, load_ingredients
 from burp.config import Settings, load_env, setup_logging
 from burp.frames import ClaudeFrameDescriber
 from burp.ingest import SourcePost, fetch_instagram, from_caption, from_screenshots, from_video
+from burp.ingredient_images import build_finder
 from burp.library import Library
 from burp.photo import ClaudeFramePicker
 from burp.pipeline import import_post
 from burp.render import full_text, one_line, summarize
 from burp.structure import split_title
 from burp.transcribe import FasterWhisperTranscriber
-from burp.worker import ZINE, default_remover, queue_photo, run_forever, run_once
+from burp.worker import (
+    INGREDIENTS,
+    ZINE,
+    default_remover,
+    queue_photo,
+    run_forever,
+    run_once,
+)
 
 
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
@@ -242,6 +250,8 @@ def run_import(
         saved, created = library.add(imported)
         print(f"salvata come #{saved.id}" if created else f"già in libreria (#{saved.id})")
         reel = post.downloaded_video if settings.photo_from_reel else None
+        if created:
+            library.enqueue(INGREDIENTS, saved.id, [])
         if created and queue_photo(
             library, saved.id, post.photo_inputs, settings.media_dir, reel=reel
         ):
@@ -303,14 +313,18 @@ def photos_from_reels(args: argparse.Namespace, settings: Settings, library: Lib
 
 
 def queue_zine_images(args: argparse.Namespace, library: Library) -> int:
+    """Zine prints of existing photos, and the ingredient pictures of every recipe."""
     queued = 0
     for saved in library.search():
         media = library.media(saved.id)
-        if media is None or (media.photocopy and not args.all):
-            continue
-        library.enqueue(ZINE, saved.id, [])
-        queued += 1
-    print(f"{queued} ricette in coda per le stampe Zine: `burp worker --once` (o il bot)")
+        if media is not None and (args.all or not media.photocopy):
+            library.enqueue(ZINE, saved.id, [])
+            queued += 1
+        library.enqueue(INGREDIENTS, saved.id, [])  # cached names cost nothing
+    print(
+        f"{queued} foto da stampare e gli ingredienti di tutte le ricette in coda: "
+        "`burp worker --once` (o il bot)"
+    )
     return 0
 
 
@@ -327,14 +341,15 @@ def run_worker(
         client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
     picker = ClaudeFramePicker(client, settings.fast_model)
     remover = default_remover()
+    finder = build_finder(settings, client, remover)
     if args.once:
-        while run_once(library, picker, settings.media_dir, remover):
+        while run_once(library, picker, settings.media_dir, remover, finder):
             pass
         return 0
     print("worker avviato: Ctrl+C per fermarlo")
     stop = threading.Event()
     try:
-        run_forever(lambda: library, picker, settings.media_dir, stop, remover)
+        run_forever(lambda: library, picker, settings.media_dir, stop, remover, finder)
     except KeyboardInterrupt:
         stop.set()
     return 0

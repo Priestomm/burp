@@ -45,6 +45,8 @@ class Settings:
     media_dir: Path
     # Opt-in, personal use only: take the dish photo from the reel downloaded with the link.
     photo_from_reel: bool
+    pexels_api_key: str | None
+    contact_email: str | None  # sent in the User-Agent to Open Food Facts
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -64,6 +66,8 @@ class Settings:
             instagram_cookies_file=Path(cookies) if cookies else None,
             db_path=Path(db_path) if db_path else DEFAULT_DB_PATH,
             media_dir=Path(media_dir) if media_dir else DEFAULT_MEDIA_DIR,
+            pexels_api_key=os.environ.get("PEXELS_API_KEY") or None,
+            contact_email=os.environ.get("BURP_CONTACT_EMAIL") or None,
             photo_from_reel=os.environ.get("BURP_PHOTO_FROM_REEL", "").strip().lower()
             in ("1", "true", "yes", "si", "sì"),
         )

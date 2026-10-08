@@ -15,6 +15,7 @@ from pathlib import Path
 from burp.catalog import SynonymIndex, normalize_name
 from burp.config import DEFAULT_DB_PATH
 from burp.ingest import source_key
+from burp.ingredient_images import IngredientPicture
 from burp.models import Enrichment, ImportedRecipe, IngredientEdit, Recipe
 from burp.structure import deduplicate_missing
 
@@ -81,6 +82,20 @@ MIGRATIONS = [
     """
     ALTER TABLE media ADD COLUMN photocopy TEXT;
     ALTER TABLE media ADD COLUMN cutout TEXT;
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS ingredient_images (
+        name TEXT PRIMARY KEY,
+        found INTEGER NOT NULL,
+        path TEXT,
+        alt TEXT NOT NULL DEFAULT '',
+        source TEXT,
+        author TEXT,
+        author_url TEXT,
+        page_url TEXT,
+        license TEXT,
+        created_at TEXT NOT NULL
+    );
     """,
 ]
 
@@ -346,6 +361,36 @@ class Library:
                 "UPDATE media SET photocopy = COALESCE(?, photocopy), cutout = COALESCE(?, cutout)"
                 " WHERE recipe_id = ?",
                 (photocopy, cutout, recipe_id),
+            )
+
+    def ingredient_picture(self, name: str) -> IngredientPicture | None:
+        """The cached picture of an ingredient (found or not), None if never searched."""
+        row = self.conn.execute(
+            "SELECT name, found, path, alt, source, author, author_url, page_url, license"
+            " FROM ingredient_images WHERE name = ?",
+            (normalize_name(name),),
+        ).fetchone()
+        if row is None:
+            return None
+        return IngredientPicture(**{**dict(row), "found": bool(row["found"])})
+
+    def save_ingredient_picture(self, picture: IngredientPicture) -> None:
+        with self.conn:
+            self.conn.execute(
+                "INSERT OR REPLACE INTO ingredient_images (name, found, path, alt, source, author,"
+                " author_url, page_url, license, created_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                (
+                    picture.name,
+                    int(picture.found),
+                    picture.path,
+                    picture.alt,
+                    picture.source,
+                    picture.author,
+                    picture.author_url,
+                    picture.page_url,
+                    picture.license,
+                    _now(),
+                ),
             )
 
     def media(self, recipe_id: int) -> Media | None:

@@ -186,7 +186,7 @@ def test_media_goes_with_the_recipe(library, saved, tmp_path):
 
 def test_new_libraries_get_the_media_tables(tmp_path, catalog):
     with Library(tmp_path / "x.db", catalog) as lib:
-        assert lib.conn.execute("PRAGMA user_version").fetchone()[0] == 3
+        assert lib.conn.execute("PRAGMA user_version").fetchone()[0] == 4
 
 
 def test_inputs_are_deleted_after_the_job(library, saved, tmp_path):

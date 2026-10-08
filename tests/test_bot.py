@@ -27,6 +27,11 @@ def make_api(sent: list[dict], files: dict[str, bytes] | None = None) -> Telegra
     return TelegramApi("TOKEN", httpx.Client(transport=httpx.MockTransport(handler)))
 
 
+def photo_jobs(library, recipe_id):
+    """Every import also queues the ingredient pictures: look at the photo jobs only."""
+    return [job for job in library.jobs(recipe_id) if job.kind == "photo"]
+
+
 def message(text="", user_id=42, photo=None) -> dict:
     body = {"chat": {"id": 7}, "from": {"id": user_id}}
     if text:
@@ -253,7 +258,7 @@ def test_a_photo_with_the_recipe_queues_the_dish_photo(library, tmp_path):
         message(text, photo="large"), api, ALLOWED, importer(), library, media_dir=tmp_path
     )
     assert "Preparo la foto del piatto." in sent[0]["text"]
-    [job] = library.jobs(1)
+    [job] = photo_jobs(library, 1)
     assert job.status == "queued" and (tmp_path / job.inputs[0]).read_bytes() == DISH.read_bytes()
 
 
@@ -262,7 +267,7 @@ def test_a_shared_link_does_not_make_a_photo(library, tmp_path):
     text = (CAPTIONS / "completa.txt").read_text()
     handle_update(message(text), make_api(sent), ALLOWED, importer(), library, media_dir=tmp_path)
     assert "Preparo la foto" not in sent[0]["text"]
-    assert library.jobs(1) == []
+    assert photo_jobs(library, 1) == []
 
 
 def test_a_video_is_imported_as_the_user_s_own_media(library, tmp_path):
@@ -353,13 +358,13 @@ def test_the_reel_becomes_a_photo_only_when_turned_on(library, tmp_path, monkeyp
 
     media = tmp_path / "media"
     handle_update(message(link), make_api(sent), ALLOWED, run_import, library, media_dir=media)
-    assert library.jobs(1) == [] and "Preparo la foto" not in sent[-1]["text"]
+    assert photo_jobs(library, 1) == [] and "Preparo la foto" not in sent[-1]["text"]
 
     other = "https://www.instagram.com/reel/xyz/"
     api = make_api(sent)
     handle_update(
         message(other), api, ALLOWED, run_import, library, media_dir=media, photo_from_reel=True
     )
-    [job] = library.jobs(2)
+    [job] = photo_jobs(library, 2)
     assert [Path(p).name for p in job.inputs] == ["reel.mp4"]
     assert "Preparo la foto" in sent[-1]["text"]

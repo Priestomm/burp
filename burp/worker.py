@@ -13,6 +13,7 @@ from pathlib import Path
 from PIL import Image
 
 from burp.cutout import BackgroundRemover, RembgRemover, make_cutout
+from burp.ingredient_images import Finder
 from burp.library import Job, Library
 from burp.photo import FramePicker, make_photo, stash_inputs, user_media
 from burp.photocopy import DISH, photocopy
@@ -21,6 +22,7 @@ log = logging.getLogger(__name__)
 
 PHOTO = "photo"
 ZINE = "zine"  # prints for the Zine theme, after the photo
+INGREDIENTS = "ingredients"  # Zine: pictures of the ingredients, cached by name
 
 
 def queue_photo(
@@ -49,6 +51,7 @@ def run_once(
     picker: FramePicker,
     media_dir: Path,
     remover: BackgroundRemover | None = None,
+    finder: Finder | None = None,
 ) -> bool:
     """Run the oldest queued job. Returns False when there was nothing to do."""
     job = library.claim_job()
@@ -62,6 +65,8 @@ def run_once(
             note = _run_photo(library, job, saved, picker, media_dir)
         elif job.kind == ZINE:
             note = _run_zine(library, job.recipe_id, media_dir, remover)
+        elif job.kind == INGREDIENTS:
+            note = _run_ingredients(library, saved, finder)
         else:
             raise ValueError(f"unknown job kind {job.kind!r}")
         library.finish_job(job.id, ok=True, note=note)
@@ -103,6 +108,18 @@ def landscape(image: Image.Image, ratio: float = SHEET_RATIO) -> Image.Image:
     new = round(width / ratio)
     top = (height - new) // 2
     return image.crop((0, top, width, top + new))
+
+
+def _run_ingredients(library: Library, saved, finder: Finder | None) -> str:
+    """Pictures for the ingredients not seen before; the others come from the cache."""
+    if finder is None:
+        return "immagini degli ingredienti saltate: servono l'extra cutout e la chiave dell'AI"
+    names = list(dict.fromkeys(i.canonical_name for i in saved.recipe.ingredients))
+    new = [name for name in names if library.ingredient_picture(name) is None]
+    for picture in finder.find(new):
+        library.save_ingredient_picture(picture)
+    found = sum(1 for name in names if (p := library.ingredient_picture(name)) and p.found)
+    return f"{len(new)} cercati, {found} di {len(names)} con un'immagine"
 
 
 def _run_zine(

@@ -167,7 +167,8 @@ def test_screenshots_from_an_import_queue_the_dish_photo(library, capsys, tmp_pa
     args = ["import", "--caption-file", str(CAPTIONS / "completa.txt"), "--screenshot", str(DISH)]
     assert main(args, client=FakeClient(valid_recipe()), library=library) == 0
     assert "foto del piatto in coda" in capsys.readouterr().out
-    [job] = library.jobs(1)
+    assert [j.kind for j in library.jobs(1)] == ["ingredients", "photo"]
+    job = library.jobs(1)[1]
     assert job.status == "queued"
     assert (tmp_path / "media" / job.inputs[0]).exists()
 
@@ -233,7 +234,7 @@ def test_photos_from_reels_queues_the_recipes_without_a_photo(
     assert fetched == [url]
 
 
-def test_zine_images_queues_recipes_with_a_photo(library, capsys):
+def test_zine_images_queues_prints_and_ingredient_pictures(library, capsys):
     from burp.library import Media
     from burp.models import ImportedRecipe
 
@@ -243,6 +244,8 @@ def test_zine_images_queues_recipes_with_a_photo(library, capsys):
     library.set_media(2, Media("2/original.jpg", "2/halftone.png", "reel", 0.9, "x", None, None))
     library.set_zine_media(2, photocopy="2/photocopy.png")
     assert main(["zine-images"], library=library) == 0
-    assert [j.kind for j in library.jobs(1)] == ["zine"] and library.jobs(2) == []
+    assert [j.kind for j in library.jobs(1)] == ["zine", "ingredients"]
+    assert [j.kind for j in library.jobs(2)] == ["ingredients"]  # already printed
+    assert [j.kind for j in library.jobs(3)] == ["ingredients"]  # no photo
     assert main(["zine-images", "--all"], library=library) == 0
-    assert len(library.jobs(2)) == 1 and library.jobs(3) == []
+    assert [j.kind for j in library.jobs(2)] == ["ingredients", "zine", "ingredients"]

@@ -28,6 +28,7 @@ from burp.ingest import (
     from_screenshots,
     from_video,
 )
+from burp.ingredient_images import build_finder
 from burp.library import Library
 from burp.models import ImportedRecipe
 from burp.photo import ClaudeFramePicker
@@ -35,7 +36,7 @@ from burp.pipeline import import_post
 from burp.render import full_text, one_line, summarize
 from burp.structure import StructuringError
 from burp.transcribe import FasterWhisperTranscriber
-from burp.worker import queue_photo, start_in_background
+from burp.worker import INGREDIENTS, default_remover, queue_photo, start_in_background
 
 log = logging.getLogger("bot")
 
@@ -219,6 +220,8 @@ def handle_update(
         saved, created = library.add(imported)
         status = f"Salvata come #{saved.id}." if created else f"Già in libreria (#{saved.id})."
         reel = post.downloaded_video if photo_from_reel else None
+        if created:
+            library.enqueue(INGREDIENTS, saved.id, [])
         if (
             created
             and media_dir
@@ -300,7 +303,10 @@ def main() -> int:
     library = Library(settings.db_path, catalog)
     # Dish photos are made in the background, so a reply never waits for them.
     picker = ClaudeFramePicker(client, settings.fast_model)
-    start_in_background(lambda: Library(settings.db_path, catalog), picker, settings.media_dir)
+    finder = build_finder(settings, client, default_remover())
+    start_in_background(
+        lambda: Library(settings.db_path, catalog), picker, settings.media_dir, finder
+    )
     transcriber = FasterWhisperTranscriber(settings.whisper_model)
     describer = ClaudeFrameDescriber(client, settings.model)
 
