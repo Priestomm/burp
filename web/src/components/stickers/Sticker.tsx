@@ -13,6 +13,8 @@ type Props = {
   rotate?: number;
   /** Accessible name; leave empty for a decorative sticker. */
   label?: string;
+  /** Peeled off the sheet: raised and turned, with its dashed outline left in place. */
+  lifted?: boolean;
   className?: string;
   children?: ReactNode;
 } & Omit<SVGProps<SVGSVGElement>, "fill" | "width" | "height" | "children">;
@@ -25,6 +27,7 @@ export function Sticker({
   fill,
   rotate = 0,
   label,
+  lifted = false,
   className,
   children,
   ...rest
@@ -39,7 +42,18 @@ export function Sticker({
       aria-hidden={label ? undefined : true}
       {...rest}
     >
-      <g transform={rotate ? `rotate(${rotate} ${width / 2} ${height / 2})` : undefined}>
+      {lifted && <path d={d} className={styles.hole} />}
+      <g
+        transform={
+          [
+            lifted ? `translate(-4 -9) rotate(-6 ${width / 2} ${height / 2})` : "",
+            rotate ? `rotate(${rotate} ${width / 2} ${height / 2})` : "",
+          ]
+            .filter(Boolean)
+            .join(" ") || undefined
+        }
+        className={lifted ? styles.lift : undefined}
+      >
         <path d={d} className={styles.kiss} />
         <path d={d} fill={fill} className={styles.edge} />
         {children}

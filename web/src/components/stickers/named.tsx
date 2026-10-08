@@ -107,12 +107,14 @@ export function RecipeSticker({
   line2,
   toClarify,
   cooked,
+  lifted = false,
 }: {
   id: number;
   line1: string;
   line2: string | null;
   toClarify: number;
   cooked: boolean;
+  lifted?: boolean;
 }) {
   const { shape, fill, ink } = stickerLook(id);
   const [w, h] = SHEET_SIZE[shape];
@@ -122,7 +124,7 @@ export function RecipeSticker({
   const size = Math.min(19, ((w - 18) / Math.max(...lines.map((l) => l.length))) * 1.9);
   const top = h / 2 - (lines.length - 1) * size * 0.5 - 2;
   return (
-    <Sticker d={shapePath(shape, w, h)} width={w} height={h} fill={fill}>
+    <Sticker d={shapePath(shape, w, h)} width={w} height={h} fill={fill} lifted={lifted}>
       {lines.map((line, i) => (
         <text key={i} x={w / 2} y={top + i * size} className={styles.cond} fontSize={size} fill={ink}>
           {line}

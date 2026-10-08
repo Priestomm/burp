@@ -130,6 +130,51 @@
   width: clamp(124px, 15vw, 178px);
 }
 
+/* "BURP!" slapped on the photo when cooked: from big and turned to flat in 0.45 s. */
+.stamp {
+  position: absolute;
+  left: 50%;
+  top: 28%;
+  width: clamp(150px, 20vw, 230px);
+  translate: -40% 0;
+}
+
+.slap {
+  animation: slap 0.45s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+
+@keyframes slap {
+  from {
+    transform: scale(1.7) rotate(14deg);
+    opacity: 0;
+  }
+
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slap {
+    animation: none;
+  }
+}
+
+.cooked {
+  flex: none;
+  width: 132px;
+  padding: 0;
+  border: 0;
+  background: none;
+  transition: transform 0.15s ease;
+}
+
+.cooked:hover,
+.cooked:focus-visible {
+  transform: rotate(-4deg) scale(1.04);
+}
+
 /* Cookie-banner notice: under the photo on phones, on the photo on wide screens. */
 .toast {
   margin-top: 14px;

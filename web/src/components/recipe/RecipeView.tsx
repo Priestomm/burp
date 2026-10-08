@@ -1,9 +1,9 @@
 "use client";
 
 import { useId, useRef, useState, useTransition } from "react";
-import { acceptByEye, clearQuantity, writeQuantity } from "@/app/ricette/[id]/actions";
+import { acceptByEye, clearQuantity, markCooked, writeQuantity } from "@/app/ricette/[id]/actions";
 import { Mascot } from "@/components/stickers/Mascot";
-import { DietStar, ServingsBadge } from "@/components/stickers/named";
+import { BurpStamp, CookedFace, DietStar, ServingsBadge } from "@/components/stickers/named";
 import type { IngredientView, RecipeDetail } from "@/lib/api/server";
 import { scale } from "@/lib/dose";
 import { missingNotice } from "@/lib/italian";
@@ -12,6 +12,9 @@ import styles from "./recipe.module.css";
 const PEOPLE = [1, 2, 3, 4];
 const DIET = { vegan: "VEGANA", vegetarian: "VEGETARIANA", neither: null } as const;
 const UNITS = ["g", "ml", "cucchiaio", "cucchiaino", "pezzo", "spicchio", "pizzico"];
+
+// Fixed zone: the page is rendered on the server and in the browser, and both must agree.
+const DAY = new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "long", timeZone: "Europe/Rome" });
 
 /** Size step for the second title line, so long names still fit in the notch. */
 function notchSize(text: string): "l" | "m" | "s" | "xs" {
@@ -28,6 +31,9 @@ export function RecipeView({ recipe }: { recipe: RecipeDetail }) {
   const [status, setStatus] = useState("");
   const [pending, startTransition] = useTransition();
   const inputs = useRef(new Map<number, HTMLInputElement>());
+  // Bumped on every "L'ho cucinata" so the stamp's slap animation plays again.
+  const [slap, setSlap] = useState(0);
+  const cooked = recipe.cooked;
   const labelId = useId();
 
   const missing = recipe.ingredients.filter((i) => i.status === "missing");
@@ -56,6 +62,19 @@ export function RecipeView({ recipe }: { recipe: RecipeDetail }) {
       );
       setStatus(result.ok ? `Fatto: ${names.join(" e ")} a occhio.` : result.error);
       if (result.ok) setEditing(false);
+    });
+  }
+
+  function cook() {
+    startTransition(async () => {
+      const result = await markCooked(recipe.id);
+      if (!result.ok) {
+        setStatus(result.error);
+        return;
+      }
+      setSlap((n) => n + 1);
+      const times = result.cooked.count === 1 ? "1 volta" : `${result.cooked.count} volte`;
+      setStatus(`Burp! Cucinata ${times}.`);
     });
   }
 
@@ -112,6 +131,11 @@ export function RecipeView({ recipe }: { recipe: RecipeDetail }) {
           <div className={styles.per}>
             <ServingsBadge n={people} />
           </div>
+          {cooked.last && (
+            <div key={slap} className={`${styles.stamp} ${slap ? styles.slap : ""}`}>
+              <BurpStamp date={DAY.format(new Date(cooked.last))} />
+            </div>
+          )}
           <div className={styles.burst}>
             <DietStar diet={diet ?? (recipe.tags.course ?? "ricetta").toUpperCase()} lines={starLines} />
           </div>
@@ -163,6 +187,15 @@ export function RecipeView({ recipe }: { recipe: RecipeDetail }) {
             ))}
           </div>
         </div>
+        <button
+          type="button"
+          className={styles.cooked}
+          onClick={cook}
+          disabled={pending}
+          aria-label={`L'ho cucinata. ${cooked.count === 0 ? "Mai cucinata finora" : `Cucinata ${cooked.count === 1 ? "1 volta" : `${cooked.count} volte`}`}`}
+        >
+          <CookedFace count={cooked.count} />
+        </button>
       </div>
 
       <p className="sr-only" aria-live="polite">

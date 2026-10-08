@@ -1,36 +1,61 @@
-import Link from "next/link";
+import Form from "next/form";
 import { Suspense } from "react";
-import { Logo } from "@/components/stickers/Logo";
+import { SiteHeader } from "@/components/SiteHeader";
+import { StickerSheet } from "@/components/library/StickerSheet";
 import { ApiError, type LibraryItem, api } from "@/lib/api/server";
+import styles from "./page.module.css";
 
-/** Temporary home: proves the wiring to the API. The sticker-sheet library replaces it. */
-export default function Home() {
+export default function LibraryPage(props: PageProps<"/">) {
   return (
-    <main style={{ maxWidth: 900, margin: "0 auto", padding: "32px 16px", display: "grid", gap: 16 }}>
-      <Logo className="" />
-      <Suspense fallback={<p>Carico la libreria…</p>}>
-        <RecipeList />
-      </Suspense>
-      <Link href="/adesivi">Foglio adesivi</Link>
-    </main>
+    <>
+      <SiteHeader />
+      <main className={styles.page}>
+        <h1 className="cond">La tua libreria</h1>
+        <Form action="/" className={styles.search} role="search">
+          <label htmlFor="q" className="sr-only">
+            Cerca per titolo, tag o ingrediente
+          </label>
+          <input id="q" name="q" type="search" placeholder="cerca: «vegana ceci», «zucca»…" />
+          <button type="submit" className="cond">
+            Cerca
+          </button>
+        </Form>
+        <Suspense fallback={<p>Carico la libreria…</p>}>
+          <Library searchParams={props.searchParams} />
+        </Suspense>
+      </main>
+    </>
   );
 }
 
-async function RecipeList() {
-  let recipes: LibraryItem[];
+async function Library({ searchParams }: { searchParams: PageProps<"/">["searchParams"] }) {
+  const { q } = await searchParams;
+  const query = typeof q === "string" ? q.trim() : "";
+  let items: LibraryItem[];
   try {
-    recipes = await api.listRecipes();
+    items = await api.listRecipes(query || undefined);
   } catch (error) {
-    const message = error instanceof ApiError ? error.message : "Errore imprevisto.";
-    return <p role="alert">{message}</p>;
+    return <p role="alert">{error instanceof ApiError ? error.message : "Errore imprevisto."}</p>;
+  }
+  if (items.length === 0) {
+    return (
+      <p>
+        {query
+          ? `Nessuna ricetta per «${query}».`
+          : "Ancora nessuna ricetta: inoltra un reel al bot Telegram per cominciare."}
+      </p>
+    );
   }
   return (
-    <ul>
-      {recipes.map((r) => (
-        <li key={r.id}>
-          #{r.id} {r.title} · {r.to_clarify} da chiarire
-        </li>
-      ))}
-    </ul>
+    <>
+      {query && (
+        <p className={styles.found}>
+          {items.length === 1 ? "1 ricetta" : `${items.length} ricette`} per «{query}»
+        </p>
+      )}
+      <div>
+        <StickerSheet items={items} layout="grid" />
+      </div>
+    </>
   );
 }
