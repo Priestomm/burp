@@ -28,6 +28,7 @@ def test_complete_caption(catalog):
     answer = Recipe.model_validate(
         {
             "title": "Carbonara",
+            "nome_riga_1": "Carbonara",
             "servings": 2,
             "time_minutes": 25,
             "ingredients": [
@@ -57,6 +58,8 @@ def test_caption_with_missing_quantities_is_partial(catalog):
     answer = Recipe.model_validate(
         {
             "title": "Pasta zucchine e menta",
+            "nome_riga_1": "Pasta",
+            "nome_riga_2": "zucchine e menta",
             "ingredients": [
                 ingredient("pasta", "pasta corta (io ho usato le mezze maniche)"),
                 ingredient("zucchina", "2 zucchine", 2),
@@ -98,6 +101,8 @@ def test_empty_caption_falls_back_to_the_transcript(catalog):
     answer = Recipe.model_validate(
         {
             "title": "Pasta e ceci",
+            "nome_riga_1": "Pasta",
+            "nome_riga_2": "e ceci",
             "ingredients": [ingredient("ceci", "200 grammi di ceci", 200, "g")],
             "steps": ["Rosola l'aglio, aggiungi ceci e pasta."],
             "tags": {"diet": "vegan"},
@@ -117,6 +122,9 @@ def test_english_caption_is_saved_in_italian(catalog):
     answer = Recipe.model_validate(
         {
             "title": "Curry di ceci vegano",
+            "nome_riga_1": "Curry",
+            "nome_riga_2": "di ceci",
+            "descrittore": "vegano",
             "servings": 4,
             "time_minutes": 30,
             "ingredients": [

@@ -7,6 +7,8 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).parent.parent
 DEFAULT_MODEL = "claude-opus-5-5"
+# Small, cheap jobs: splitting a title, picking the best video frame.
+DEFAULT_FAST_MODEL = "claude-haiku-4-5"
 DEFAULT_DB_PATH = ROOT_DIR / "data" / "burp.db"
 
 
@@ -33,6 +35,7 @@ def setup_logging(fmt: str = "%(levelname)s %(message)s") -> None:
 class Settings:
     anthropic_api_key: str | None
     model: str
+    fast_model: str
     telegram_bot_token: str | None
     telegram_allowed_user_ids: frozenset[int]
     whisper_model: str
@@ -47,6 +50,7 @@ class Settings:
         return cls(
             anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY") or None,
             model=os.environ.get("BURP_MODEL") or DEFAULT_MODEL,
+            fast_model=os.environ.get("BURP_FAST_MODEL") or DEFAULT_FAST_MODEL,
             telegram_bot_token=os.environ.get("TELEGRAM_BOT_TOKEN") or None,
             telegram_allowed_user_ids=frozenset(
                 int(part) for part in allowed.split(",") if part.strip()

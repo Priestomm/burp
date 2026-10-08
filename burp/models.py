@@ -67,6 +67,17 @@ class Recipe(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     title: str
+    nome_riga_1: str = Field(
+        description="Prima parte del nome del piatto, senza aggettivi, es. 'Gnocchi'"
+    )
+    nome_riga_2: str | None = Field(
+        default=None, description="Seconda parte del nome, es. 'di tofu'; null se il nome è breve"
+    )
+    descrittore: str | None = Field(
+        default=None,
+        description="Gli aggettivi tolti dal nome, minuscoli, es. 'gommosi e glassati'; null se "
+        "non ce ne sono",
+    )
     source_url: str | None = None
     author_handle: str | None = Field(
         default=None, description="Username Instagram dell'autore, senza @; null se non noto"
@@ -79,11 +90,24 @@ class Recipe(BaseModel):
     completeness: Completeness
 
 
+class IngredientEdit(BaseModel):
+    """What the user changed on one ingredient. The model's answer itself is never modified."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    quantity: float | None = Field(default=None, gt=0)
+    unit: str | None = None
+    by_eye: bool = False  # "Sì, a occhio": the user accepts not knowing the quantity
+
+
 class ImportedRecipe(BaseModel):
-    """A recipe as saved, with where its text came from."""
+    """A recipe as saved, with where its text came from and what the user changed."""
 
     model_config = ConfigDict(extra="forbid")
 
     recipe: Recipe
     content_source: ContentSource
     content_reason: str = Field(default="", description="Why cheaper sources were not enough")
+    edits: dict[int, IngredientEdit] = Field(
+        default_factory=dict, description="User changes, by ingredient position"
+    )

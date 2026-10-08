@@ -10,6 +10,8 @@ from burp.structure import StructuringError, finalize, structure_recipe
 def valid_recipe(**overrides) -> Recipe:
     data = {
         "title": "Dal tadka",
+        "nome_riga_1": "Dal",
+        "nome_riga_2": "tadka",
         "ingredients": [
             {
                 "canonical_name": "lenticchie rosse",
@@ -185,3 +187,30 @@ def test_missing_items_worded_differently_by_the_model_are_not_repeated(catalog)
         "quantità dell'olio",
         "quantità di menta",
     ]
+
+
+def test_singular_and_plural_missing_items_are_one(catalog):
+    # Seen in the library: "quantità dei tuorli" from the model, "quantità di tuorlo" from us.
+    recipe = valid_recipe(
+        ingredients=[ingredient("tuorli", "Tuorli"), ingredient("mela", "Apples")],
+        completeness={
+            "status": "partial",
+            "missing": ["quantità dei tuorli", "quantità delle mele"],
+        },
+    )
+    assert finalize(recipe, catalog).completeness.missing == [
+        "quantità dei tuorli",
+        "quantità delle mele",
+    ]
+
+
+def test_the_prompt_explains_the_title_split(catalog):
+    client = FakeClient(valid_recipe())
+    structure_recipe("text", catalog, client, "m")
+    system = client.calls[0]["system"][0]["text"]
+    assert "nome_riga_1" in system and "descrittore" in system
+
+
+def test_an_empty_first_line_falls_back_to_the_title(catalog):
+    recipe = finalize(valid_recipe(nome_riga_1="  "), catalog)
+    assert recipe.nome_riga_1 == "Dal tadka"

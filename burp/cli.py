@@ -23,6 +23,7 @@ from burp.ingest import SourcePost, fetch_instagram, from_caption, from_screensh
 from burp.library import Library
 from burp.pipeline import import_post
 from burp.render import full_text, one_line, summarize
+from burp.structure import split_title
 from burp.transcribe import FasterWhisperTranscriber
 
 
@@ -48,6 +49,11 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
 
     delete = commands.add_parser("delete", help="remove one recipe")
     delete.add_argument("id", type=int)
+
+    backfill = commands.add_parser(
+        "backfill-titles", help="split the titles of recipes saved before the split existed"
+    )
+    backfill.add_argument("--dry-run", action="store_true", help="print, do not save")
 
     commands.add_parser("bot", help="run the Telegram bot")
 
@@ -102,6 +108,8 @@ def main(
                 return 1
             print(saved.imported.model_dump_json(indent=2) if args.json else full_text(saved))
             return 0
+        case "backfill-titles":
+            return backfill_titles(args, settings, library, client)
         case "delete":
             if not library.delete(args.id):
                 print(f"no recipe #{args.id}", file=sys.stderr)
@@ -109,6 +117,35 @@ def main(
             print(f"deleted #{args.id}")
             return 0
     return 2
+
+
+def backfill_titles(
+    args: argparse.Namespace,
+    settings: Settings,
+    library: Library,
+    client: anthropic.Anthropic | None,
+) -> int:
+    todo = [s for s in library.search() if needs_title_split(s.recipe)]
+    if not todo:
+        print("tutti i titoli sono già divisi")
+        return 0
+    if client is None:
+        if not settings.anthropic_api_key:
+            print("ANTHROPIC_API_KEY is not set (see .env.example)", file=sys.stderr)
+            return 2
+        client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+    for saved in todo:
+        split = split_title(saved.recipe.title, client, settings.fast_model)
+        print(f"#{saved.id} {split.nome_riga_1} / {split.nome_riga_2 or '-'} · {split.descrittore}")
+        if not args.dry_run:
+            recipe = saved.recipe.model_copy(update=split.model_dump())
+            library.replace(saved.id, saved.imported.model_copy(update={"recipe": recipe}))
+    return 0
+
+
+def needs_title_split(recipe) -> bool:
+    """Upgraded recipes carry the whole title as the first line and nothing else."""
+    return recipe.nome_riga_1 == recipe.title and not recipe.nome_riga_2 and not recipe.descrittore
 
 
 def run_import(

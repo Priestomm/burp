@@ -129,3 +129,31 @@ def test_delete(library, capsys):
     fill(library)
     assert main(["delete", "1"], library=library) == 0
     assert [s.recipe.title for s in library.search()] == ["Carbonara"]
+
+
+def test_backfill_splits_only_titles_that_were_never_split(library, capsys):
+    from burp.models import ImportedRecipe
+    from burp.structure import TitleSplit
+
+    title = "Gnocchi di tofu gommosi glassati"
+    old = valid_recipe(title=title, nome_riga_1=title, nome_riga_2=None)
+    new = valid_recipe(title="Carbonara", nome_riga_1="Carbonara", descrittore="vera")
+    library.add(ImportedRecipe(recipe=old, content_source="caption"))
+    library.add(ImportedRecipe(recipe=new, content_source="caption"))
+    split = TitleSplit(
+        nome_riga_1="Gnocchi", nome_riga_2="di tofu", descrittore="gommosi e glassati"
+    )
+    client = FakeClient(split)
+
+    assert main(["backfill-titles"], client=client, library=library) == 0
+    assert len(client.calls) == 1 and "Gnocchi di tofu" in client.calls[0]["messages"][0]["content"]
+    recipe = library.get(1).recipe
+    assert (recipe.nome_riga_1, recipe.nome_riga_2, recipe.descrittore) == (
+        "Gnocchi",
+        "di tofu",
+        "gommosi e glassati",
+    )
+    assert library.get(2).recipe.descrittore == "vera"
+    capsys.readouterr()
+    assert main(["backfill-titles"], client=FakeClient(), library=library) == 0
+    assert "già divisi" in capsys.readouterr().out

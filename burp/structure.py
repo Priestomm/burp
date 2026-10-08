@@ -10,7 +10,7 @@ import logging
 import re
 
 import anthropic
-from pydantic import ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from burp.catalog import SynonymIndex, normalize_name, stricter_than
 from burp.models import Completeness, Recipe, RecipeIngredient, Tags
@@ -42,6 +42,12 @@ qualunque lingua), usa esattamente il nome del catalogo.
 - unit: "q.b." (con quantity null) se la fonte dice q.b./a piacere/to taste, o per sale, pepe \
 e condimenti simili elencati senza quantità. Per gli altri ingredienti senza quantità lascia \
 unit null.
+- nome_riga_1, nome_riga_2, descrittore: il titolo diviso per l'impaginazione. Le due righe \
+insieme sono il nome del piatto senza aggettivi, divise dove si va a capo in modo naturale \
+("Gnocchi" / "di tofu", "Curry" / "di spinaci e ceci", "French toast" / "alla mela"); \
+nome_riga_1 è breve, di solito una o due parole. descrittore raccoglie gli aggettivi e le \
+qualità tolte dal nome, minuscoli ("gommosi e glassati", "definitivi"), null se non ce ne sono. \
+Non aggiungere parole che non sono nel titolo.
 - steps: i passaggi della fonte, concisi. Lista vuota se la fonte non li descrive.
 - servings e time_minutes: solo se la fonte li dice, altrimenti null.
 - tags.diet: "vegan", "vegetarian" (uova o latticini, niente carne né pesce) o "neither". \
@@ -112,6 +118,32 @@ def structure_recipe(
     raise StructuringError(f"no valid recipe after {max_attempts} attempts: {error}")
 
 
+class TitleSplit(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    nome_riga_1: str = Field(description=Recipe.model_fields["nome_riga_1"].description)
+    nome_riga_2: str | None = Field(description=Recipe.model_fields["nome_riga_2"].description)
+    descrittore: str | None = Field(description=Recipe.model_fields["descrittore"].description)
+
+
+TITLE_PROMPT = SYSTEM_PROMPT[SYSTEM_PROMPT.index("- nome_riga_1") : SYSTEM_PROMPT.index("- steps")]
+
+
+def split_title(title: str, client: anthropic.Anthropic, model: str) -> TitleSplit:
+    """Split an existing title for the recipe page (recipes saved before the split existed)."""
+    response = client.messages.parse(
+        model=model,
+        max_tokens=1000,
+        system="Dividi il titolo di una ricetta in italiano secondo questa regola:\n"
+        + TITLE_PROMPT,
+        messages=[{"role": "user", "content": f"Titolo: {title}"}],
+        output_format=TitleSplit,
+    )
+    if response.parsed_output is None:
+        raise StructuringError(f"no title split for {title!r} ({response.stop_reason})")
+    return response.parsed_output
+
+
 def finalize(
     recipe: Recipe,
     catalog: SynonymIndex,
@@ -126,6 +158,7 @@ def finalize(
     handle = author_handle or recipe.author_handle
     return recipe.model_copy(
         update={
+            "nome_riga_1": recipe.nome_riga_1.strip() or recipe.title,
             "source_url": source_url,
             "author_handle": handle.lstrip("@") if handle else None,
             "ingredients": ingredients,
@@ -146,9 +179,30 @@ def _checked_completeness(recipe: Recipe, ingredients: list[RecipeIngredient]) -
             missing.append(f"quantità di {item.canonical_name}")
     if not recipe.steps and " procedimento " not in mentioned:
         missing.append("procedimento")
+    missing = deduplicate_missing(missing)
     if missing != recipe.completeness.missing:
         log.info("completeness: marked partial, missing %s", missing)
     return Completeness(status="partial" if missing else "complete", missing=missing)
+
+
+_FILLER = {"quantita", "di", "del", "della", "dei", "delle", "degli", "dell", "d", "lo", "la"}
+
+
+def _stem(word: str) -> str:
+    """Italian singular and plural share a stem: tuorlo/tuorli, mela/mele, erbetta/erbette."""
+    return word[:-1] if len(word) > 3 and word[-1] in "aeio" else word
+
+
+def deduplicate_missing(missing: list[str]) -> list[str]:
+    """Drop entries that name the same thing again ("quantità di tuorli", "quantità di tuorlo")."""
+    seen: set[tuple[str, ...]] = set()
+    kept = []
+    for entry in missing:
+        key = tuple(_stem(w) for w in normalize_name(entry).split() if w not in _FILLER)
+        if key not in seen:
+            seen.add(key)
+            kept.append(entry)
+    return kept
 
 
 def _mentioned(text: str, *names: str) -> bool:

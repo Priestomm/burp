@@ -5,6 +5,7 @@ ingredient name to search on. The same post shared twice is saved once: `source_
 ingest.source_key) is unique, so a /p/ and a /reel/ link of the same post count as one.
 """
 
+import json
 import sqlite3
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -14,7 +15,8 @@ from pathlib import Path
 from burp.catalog import SynonymIndex, normalize_name
 from burp.config import DEFAULT_DB_PATH
 from burp.ingest import source_key
-from burp.models import ImportedRecipe, Recipe
+from burp.models import ImportedRecipe, IngredientEdit, Recipe
+from burp.structure import deduplicate_missing
 
 # Diet tags can be searched with their Italian names too.
 DIET_ALIASES = {
@@ -43,6 +45,23 @@ CREATE TABLE IF NOT EXISTS recipe_ingredients (
 CREATE INDEX IF NOT EXISTS recipe_ingredients_name ON recipe_ingredients(name);
 """
 
+# Applied in order to databases older than them; PRAGMA user_version is the current index.
+MIGRATIONS = [
+    """
+    CREATE TABLE IF NOT EXISTS cooked (
+        recipe_id INTEGER NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+        cooked_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS cooked_recipe ON cooked(recipe_id);
+    """,
+]
+
+
+@dataclass(frozen=True)
+class Cooked:
+    count: int
+    last: str | None  # ISO timestamp of the last time, None if never
+
 
 @dataclass(frozen=True)
 class SavedRecipe:
@@ -64,6 +83,30 @@ class Library:
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA foreign_keys = ON")
         self.conn.executescript(SCHEMA)
+        self._migrate()
+
+    def _migrate(self) -> None:
+        version = self.conn.execute("PRAGMA user_version").fetchone()[0]
+        for number, script in enumerate(MIGRATIONS[version:], start=version + 1):
+            with self.conn:
+                self.conn.executescript(script)
+                if number == 1:
+                    self._upgrade_recipes_v1()
+                self.conn.execute(f"PRAGMA user_version = {number}")
+
+    def _upgrade_recipes_v1(self) -> None:
+        """Recipes saved before the title split: the whole title becomes the first line (run
+        `burp backfill-titles` to split it properly), and repeated missing items go."""
+        for row in self.conn.execute("SELECT id, data FROM recipes").fetchall():
+            data = json.loads(row["data"])
+            recipe = data["recipe"]
+            recipe.setdefault("nome_riga_1", recipe["title"])
+            missing = recipe["completeness"]["missing"]
+            recipe["completeness"]["missing"] = deduplicate_missing(missing)
+            self.conn.execute(
+                "UPDATE recipes SET data = ? WHERE id = ?",
+                (ImportedRecipe.model_validate(data).model_dump_json(), row["id"]),
+            )
 
     def close(self) -> None:
         self.conn.close()
@@ -109,6 +152,76 @@ class Library:
 
     def find_by_url(self, url: str) -> SavedRecipe | None:
         return self._one("source_key = ?", source_key(url))
+
+    def replace(self, recipe_id: int, imported: ImportedRecipe) -> SavedRecipe:
+        """Store a changed version of a recipe (same post, same id)."""
+        with self.conn:
+            changed = self.conn.execute(
+                "UPDATE recipes SET data = ?, title = ?, title_norm = ? WHERE id = ?",
+                (
+                    imported.model_dump_json(),
+                    imported.recipe.title,
+                    normalize_name(imported.recipe.title),
+                    recipe_id,
+                ),
+            ).rowcount
+        if not changed:
+            raise KeyError(recipe_id)
+        return self.get(recipe_id)
+
+    def set_quantity(
+        self, recipe_id: int, index: int, quantity: float, unit: str | None
+    ) -> SavedRecipe:
+        """ "Li scrivo io": the user fills in a quantity the post did not give."""
+        return self._edit(recipe_id, index, IngredientEdit(quantity=quantity, unit=unit))
+
+    def mark_by_eye(self, recipe_id: int, indices: Iterable[int]) -> SavedRecipe:
+        """ "Sì, a occhio": these quantities stay unknown, and that is fine."""
+        saved = self._require(recipe_id)
+        edits = dict(saved.imported.edits)
+        for index in indices:
+            self._check_index(saved, index)
+            edits[index] = IngredientEdit(by_eye=True)
+        return self.replace(recipe_id, saved.imported.model_copy(update={"edits": edits}))
+
+    def clear_edit(self, recipe_id: int, index: int) -> SavedRecipe:
+        saved = self._require(recipe_id)
+        edits = {i: e for i, e in saved.imported.edits.items() if i != index}
+        return self.replace(recipe_id, saved.imported.model_copy(update={"edits": edits}))
+
+    def cook(self, recipe_id: int) -> Cooked:
+        """ "L'ho cucinata": one more time, now."""
+        self._require(recipe_id)
+        with self.conn:
+            self.conn.execute(
+                "INSERT INTO cooked (recipe_id, cooked_at) VALUES (?, ?)",
+                (recipe_id, datetime.now(UTC).isoformat(timespec="seconds")),
+            )
+        return self.cooked(recipe_id)
+
+    def cooked(self, recipe_id: int) -> Cooked:
+        row = self.conn.execute(
+            "SELECT COUNT(*) AS n, MAX(cooked_at) AS last FROM cooked WHERE recipe_id = ?",
+            (recipe_id,),
+        ).fetchone()
+        return Cooked(row["n"], row["last"])
+
+    def _edit(self, recipe_id: int, index: int, edit: IngredientEdit) -> SavedRecipe:
+        saved = self._require(recipe_id)
+        self._check_index(saved, index)
+        edits = {**saved.imported.edits, index: edit}
+        return self.replace(recipe_id, saved.imported.model_copy(update={"edits": edits}))
+
+    def _require(self, recipe_id: int) -> SavedRecipe:
+        saved = self.get(recipe_id)
+        if saved is None:
+            raise KeyError(recipe_id)
+        return saved
+
+    @staticmethod
+    def _check_index(saved: SavedRecipe, index: int) -> None:
+        if not 0 <= index < len(saved.recipe.ingredients):
+            raise IndexError(f"recipe #{saved.id} has no ingredient {index}")
 
     def delete(self, recipe_id: int) -> bool:
         with self.conn:

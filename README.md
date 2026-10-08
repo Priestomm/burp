@@ -62,6 +62,7 @@ Chiavi e token si leggono dalle variabili d'ambiente o da `.env`, che git ignora
 | --- | --- |
 | `ANTHROPIC_API_KEY` | obbligatoria per importare |
 | `BURP_MODEL` | modello usato (default `claude-opus-5-5`) |
+| `BURP_FAST_MODEL` | modello per i lavori piccoli: dividere i titoli, scegliere il fotogramma (default `claude-haiku-4-5`) |
 | `BURP_DB_PATH` | dove sta la libreria (default `data/burp.db`) |
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_USER_IDS` | bot Telegram |
 | `WHISPER_MODEL` | modello Whisper locale (`tiny`, `base`, `small`…) |
@@ -86,6 +87,10 @@ uv run burp search --ingredient ceci --ingredient pasta
 uv run burp show 3
 uv run burp show 3 --json
 uv run burp delete 3
+
+# ricette salvate prima della divisione del titolo (nome in due righe + descrittore)
+uv run burp backfill-titles --dry-run
+uv run burp backfill-titles
 ```
 
 Il **fallback manuale funziona sempre**: `--caption`, `--caption-file` e `--screenshot` non scaricano nulla. Se un link non si scarica (Instagram spesso chiede il login per i reel), imposta `INSTAGRAM_COOKIES_FILE` con un file di cookie in formato Netscape, oppure incolla la caption o usa uno screenshot. Con `--url` insieme a una caption o a uno screenshot, il link resta come fonte e serve per la deduplica.

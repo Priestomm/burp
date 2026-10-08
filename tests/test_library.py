@@ -125,3 +125,73 @@ def test_free_text_matches_title_tags_or_ingredients(filled):
     assert titles(filled.search(text="unico")) == ["Curry di ceci"]  # part of the course
     assert titles(filled.search(text="Curry chickpeas")) == ["Curry di ceci"]
     assert filled.search(text="carbonara vegana") == []
+
+
+def test_quantities_written_by_the_user_or_accepted_by_eye(library):
+    saved, _ = library.add(
+        imported(
+            ingredients=[
+                ingredient("tofu", "400 g di tofu", 400, "g"),
+                ingredient("cipollotto", "cipollotto"),
+                ingredient("semi di sesamo", "semi di sesamo"),
+            ]
+        )
+    )
+    library.set_quantity(saved.id, 1, 1, None)
+    updated = library.mark_by_eye(saved.id, [2])
+    assert updated.imported.edits[1].quantity == 1
+    assert updated.imported.edits[2].by_eye
+    # The model's answer is untouched: the post still says nothing about cipollotto.
+    assert updated.recipe.ingredients[1].quantity is None
+    assert library.clear_edit(saved.id, 2).imported.edits.keys() == {1}
+
+
+def test_editing_an_unknown_recipe_or_ingredient_fails(library):
+    saved, _ = library.add(imported())
+    with pytest.raises(KeyError):
+        library.set_quantity(99, 0, 1, "g")
+    with pytest.raises(IndexError):
+        library.mark_by_eye(saved.id, [5])
+
+
+def test_cooking_counts_every_time(library):
+    saved, _ = library.add(imported())
+    assert library.cooked(saved.id).count == 0
+    library.cook(saved.id)
+    cooked = library.cook(saved.id)
+    assert cooked.count == 2 and cooked.last is not None
+    with pytest.raises(KeyError):
+        library.cook(99)
+
+
+def test_a_library_from_before_the_title_split_is_upgraded(tmp_path, catalog):
+    import json
+    import sqlite3
+
+    from burp.library import SCHEMA
+
+    path = tmp_path / "old.db"
+    old = imported(
+        title="Gnocchi alla zucca definitivi",
+        completeness={"status": "partial", "missing": ["quantità di tuorli", "quantità di tuorlo"]},
+    ).model_dump(mode="json")
+    for key in ("nome_riga_1", "nome_riga_2", "descrittore"):
+        del old["recipe"][key]
+    del old["edits"]
+    conn = sqlite3.connect(path)
+    conn.executescript(SCHEMA)
+    row = ("Gnocchi", "gnocchi", "vegan", json.dumps(old), "2026-09-27T15:32:38+00:00")
+    conn.execute(
+        "INSERT INTO recipes (title, title_norm, diet, data, created_at) VALUES (?, ?, ?, ?, ?)",
+        row,
+    )
+    conn.commit()
+    conn.close()
+
+    with Library(path, catalog) as lib:
+        [saved] = lib.search()
+        assert saved.recipe.nome_riga_1 == "Gnocchi alla zucca definitivi"
+        assert saved.recipe.completeness.missing == ["quantità di tuorli"]
+        assert lib.cooked(saved.id).count == 0  # the new table exists
+    with Library(path, catalog) as lib:  # opening again changes nothing
+        assert lib.search()[0].recipe.completeness.missing == ["quantità di tuorli"]
