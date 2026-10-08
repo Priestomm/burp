@@ -1,0 +1,35 @@
+.nav {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  margin-inline: 16px;
+  padding-block: 12px;
+  border-bottom: 2px solid var(--ink);
+}
+
+.links {
+  display: flex;
+  gap: 20px;
+  font-size: 19px;
+}
+
+.links a {
+  text-decoration: none;
+}
+
+.logo {
+  display: block;
+  width: 112px;
+  filter: drop-shadow(2px 3px 0 rgb(23 19 17 / 18%));
+}
+
+@media (min-width: 820px) {
+  .nav {
+    margin-inline: 24px;
+  }
+
+  .logo {
+    width: 128px;
+  }
+}

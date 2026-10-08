@@ -13,7 +13,8 @@ export function DietStar({ diet, lines }: { diet: string; lines: string[] }) {
       rotate={-11}
       label={[diet, ...lines].join(", ")}
     >
-      <text x={96} y={100} className={styles.cond} fontSize={diet.length > 8 ? 34 : 44} fill="var(--cream)">
+      {/* About 0.45 em per condensed capital: keep the word inside the star's 148 units. */}
+      <text x={96} y={100} className={styles.cond} fontSize={Math.min(44, 148 / (diet.length * 0.45))} fill="var(--cream)">
         {diet}
       </text>
       {lines.map((line, i) => (
