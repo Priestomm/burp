@@ -18,7 +18,7 @@ from pathlib import Path
 import anthropic
 
 from burp.catalog import SynonymIndex, load_ingredients
-from burp.config import Settings, load_env, setup_logging
+from burp.config import Settings, anthropic_client, load_env, setup_logging
 from burp.frames import ClaudeFrameDescriber
 from burp.ingest import SourcePost, fetch_instagram, from_caption, from_screenshots, from_video
 from burp.ingredient_images import build_finder
@@ -26,7 +26,7 @@ from burp.library import Library
 from burp.photo import ClaudeFramePicker
 from burp.pipeline import import_post
 from burp.render import full_text, one_line, summarize
-from burp.structure import split_title
+from burp.structure import cuisine_word, split_title
 from burp.transcribe import FasterWhisperTranscriber
 from burp.worker import (
     INGREDIENTS,
@@ -66,6 +66,11 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
         "backfill-titles", help="split the titles of recipes saved before the split existed"
     )
     backfill.add_argument("--dry-run", action="store_true", help="print, do not save")
+
+    words = commands.add_parser(
+        "backfill-words", help="Zine: the cuisine word for recipes saved before it existed"
+    )
+    words.add_argument("--dry-run", action="store_true", help="print, do not save")
 
     serve = commands.add_parser("serve", help="run the API for the web app (local only)")
     serve.add_argument("--port", type=int, default=8000)
@@ -164,6 +169,8 @@ def main(
                 return 1
             print(saved.imported.model_dump_json(indent=2) if args.json else full_text(saved))
             return 0
+        case "backfill-words":
+            return backfill_words(args, settings, library, client)
         case "backfill-titles":
             return backfill_titles(args, settings, library, client)
         case "photo":
@@ -197,12 +204,37 @@ def backfill_titles(
         if not settings.anthropic_api_key:
             print("ANTHROPIC_API_KEY is not set (see .env.example)", file=sys.stderr)
             return 2
-        client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+        client = anthropic_client(settings)
     for saved in todo:
         split = split_title(saved.recipe.title, client, settings.fast_model)
         print(f"#{saved.id} {split.nome_riga_1} / {split.nome_riga_2 or '-'} · {split.descrittore}")
         if not args.dry_run:
             recipe = saved.recipe.model_copy(update=split.model_dump())
+            library.replace(saved.id, saved.imported.model_copy(update={"recipe": recipe}))
+    return 0
+
+
+def backfill_words(
+    args: argparse.Namespace,
+    settings: Settings,
+    library: Library,
+    client: anthropic.Anthropic | None,
+) -> int:
+    todo = [s for s in library.search() if s.recipe.parola_cucina is None]
+    if not todo:
+        print("tutte le ricette hanno già la parola, o non ne hanno bisogno")
+        return 0
+    if client is None:
+        if not settings.anthropic_api_key:
+            print("ANTHROPIC_API_KEY is not set (see .env.example)", file=sys.stderr)
+            return 2
+        client = anthropic_client(settings)
+    for saved in todo:
+        word = cuisine_word(saved.recipe, client, settings.fast_model)
+        shown = f"{word.parola} ({word.lingua}): {word.traduzione}" if word else "nessuna"
+        print(f"#{saved.id} {saved.recipe.title} → {shown}")
+        if word and not args.dry_run:
+            recipe = saved.recipe.model_copy(update={"parola_cucina": word})
             library.replace(saved.id, saved.imported.model_copy(update={"recipe": recipe}))
     return 0
 
@@ -227,7 +259,7 @@ def run_import(
         if not settings.anthropic_api_key:
             print("ANTHROPIC_API_KEY is not set (see .env.example)", file=sys.stderr)
             return 2
-        client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+        client = anthropic_client(settings)
 
     try:
         post = build_post(args, settings)
@@ -338,7 +370,7 @@ def run_worker(
         if not settings.anthropic_api_key:
             print("ANTHROPIC_API_KEY is not set (see .env.example)", file=sys.stderr)
             return 2
-        client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+        client = anthropic_client(settings)
     picker = ClaudeFramePicker(client, settings.fast_model)
     remover = default_remover()
     finder = build_finder(settings, client, remover)

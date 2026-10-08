@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from burp.catalog import SynonymIndex, load_ingredients
-from burp.config import Settings
+from burp.config import Settings, anthropic_client
 from burp.fill import ClaudeFiller, Filler
 from burp.library import Cooked, Library, Media, SavedRecipe
 from burp.models import Completeness, ContentSource, Course, Diet, Tags
@@ -178,6 +178,15 @@ def detail(lib: Library, saved: SavedRecipe) -> RecipeDetail:
         steps_rewritten=rewritten,
         steps_note=extra.steps_note if extra else None,
         filled_by=extra.model if extra else None,
+        native_word=(
+            NativeWord(
+                lang=recipe.parola_cucina.lingua,
+                word=recipe.parola_cucina.parola,
+                meaning=recipe.parola_cucina.traduzione,
+            )
+            if recipe.parola_cucina
+            else None
+        ),
         fill_saved=saved.imported.enrichment is not None,
         still_missing=missing_names(saved.imported),
         completeness=recipe.completeness,
@@ -251,7 +260,7 @@ def create_app(
         if filler is None:
             if not settings.anthropic_api_key:
                 raise HTTPException(503, "Manca ANTHROPIC_API_KEY: aggiungila a .env e riavvia.")
-            client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+            client = anthropic_client(settings)
             filler = ClaudeFiller(client, settings.fast_model)
         return filler
 

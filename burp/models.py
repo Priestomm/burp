@@ -63,6 +63,16 @@ class Completeness(BaseModel):
         return self
 
 
+class CuisineWord(BaseModel):
+    """A word in the language of the dish's cuisine, for the Zine page (e.g. もちもち)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    lingua: str = Field(description="Codice BCP 47 della lingua, es. ja, ko, zh, th, ar, hi")
+    parola: str = Field(description="La parola o espressione breve, nel suo alfabeto")
+    traduzione: str = Field(description="Cosa vuol dire, in italiano, poche parole")
+
+
 class Recipe(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -77,6 +87,10 @@ class Recipe(BaseModel):
         default=None,
         description="Gli aggettivi tolti dal nome, minuscoli, es. 'gommosi e glassati'; null se "
         "non ce ne sono",
+    )
+    parola_cucina: CuisineWord | None = Field(
+        default=None,
+        description="Solo per cucine con alfabeto non latino e se sei sicuro; altrimenti null",
     )
     source_url: str | None = None
     author_handle: str | None = Field(

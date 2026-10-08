@@ -295,3 +295,22 @@ def test_regenerate_asks_again_from_the_post(db, media_dir):
     assert filler.calls == 2
     # The second estimate still sees the gaps, not the first estimate's guesses.
     assert seen == [["cipollotto", "semi di sesamo"], ["cipollotto", "semi di sesamo"]]
+
+
+def test_the_cuisine_word_reaches_the_page(tmp_path):
+    from burp.models import CuisineWord
+
+    path = tmp_path / "w.db"
+    word = CuisineWord(lingua="ja", parola="もちもち", traduzione="consistenza gommosa")
+    with Library(path) as lib:
+        lib.add(
+            ImportedRecipe(
+                recipe=valid_recipe(parola_cucina=word.model_dump()), content_source="caption"
+            )
+        )
+    data = TestClient(create_app(path, tmp_path / "m")).get("/api/recipes/1").json()
+    assert data["native_word"] == {
+        "lang": "ja",
+        "word": "もちもち",
+        "meaning": "consistenza gommosa",
+    }

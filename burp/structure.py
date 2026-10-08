@@ -13,7 +13,7 @@ import anthropic
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from burp.catalog import SynonymIndex, normalize_name, stricter_than
-from burp.models import Completeness, Recipe, RecipeIngredient, Tags
+from burp.models import Completeness, CuisineWord, Recipe, RecipeIngredient, Tags
 
 log = logging.getLogger(__name__)
 
@@ -58,6 +58,10 @@ o di pesce, salsa Worcestershire.
 - completeness: "complete" solo se ogni ingrediente ha una quantità (o è q.b.) e ci sono i \
 passaggi. Altrimenti "partial", con in missing cosa manca, es. "quantità della pasta", \
 "procedimento".
+- parola_cucina: solo se la cucina del piatto usa un alfabeto non latino (giapponese, \
+coreano, cinese, thai, arabo, hindi…) e sei sicuro della parola: un'espressione breve e \
+autentica che descrive il piatto o la sua consistenza (es. もちもち per gnocchi gommosi), \
+con lingua (codice BCP 47) e traduzione italiana breve. Altrimenti null: non inventare.
 - author_handle: solo se il testo dice esplicitamente di chi è la ricetta, senza @; \
 altrimenti null. source_url: null."""
 
@@ -144,6 +148,43 @@ def split_title(title: str, client: anthropic.Anthropic, model: str) -> TitleSpl
     return response.parsed_output
 
 
+LATIN = re.compile(r"[A-Za-zÀ-ÿ]")
+
+
+def checked_word(word: CuisineWord | None) -> CuisineWord | None:
+    """Keep the cuisine word only if it really is in a non-Latin script."""
+    if word is None or not word.parola.strip() or LATIN.search(word.parola):
+        return None
+    return word
+
+
+class WordAnswer(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    parola_cucina: CuisineWord | None = Field(
+        description=Recipe.model_fields["parola_cucina"].description
+    )
+
+
+WORD_PROMPT = SYSTEM_PROMPT[
+    SYSTEM_PROMPT.index("- parola_cucina") : SYSTEM_PROMPT.index("- author")
+]
+
+
+def cuisine_word(recipe: Recipe, client: anthropic.Anthropic, model: str) -> CuisineWord | None:
+    """The cuisine word for a recipe saved before the field existed."""
+    facts = f"Titolo: {recipe.title}\nCucina: {recipe.tags.cuisine or 'non nota'}"
+    response = client.messages.parse(
+        model=model,
+        max_tokens=500,
+        system=f"Rispondi per questa ricetta secondo la regola:\n{WORD_PROMPT}",
+        messages=[{"role": "user", "content": facts}],
+        output_format=WordAnswer,
+    )
+    answer = response.parsed_output
+    return checked_word(answer.parola_cucina) if answer else None
+
+
 def finalize(
     recipe: Recipe,
     catalog: SynonymIndex,
@@ -159,6 +200,7 @@ def finalize(
     return recipe.model_copy(
         update={
             "nome_riga_1": recipe.nome_riga_1.strip() or recipe.title,
+            "parola_cucina": checked_word(recipe.parola_cucina),
             "source_url": source_url,
             "author_handle": handle.lstrip("@") if handle else None,
             "ingredients": ingredients,

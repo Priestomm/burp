@@ -12,11 +12,10 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-import anthropic
 import httpx
 
 from burp.catalog import SynonymIndex, load_ingredients
-from burp.config import Settings, load_env, setup_logging
+from burp.config import Settings, anthropic_client, load_env, setup_logging
 from burp.extract import InsufficientContentError, is_sufficient
 from burp.frames import ClaudeFrameDescriber
 from burp.ingest import (
@@ -298,7 +297,7 @@ def main() -> int:
         log.error("TELEGRAM_ALLOWED_USER_IDS is empty: nobody would be allowed to use the bot")
         return 2
 
-    client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+    client = anthropic_client(settings)
     catalog = SynonymIndex(load_ingredients())
     library = Library(settings.db_path, catalog)
     # Dish photos are made in the background, so a reply never waits for them.

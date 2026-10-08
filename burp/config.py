@@ -71,3 +71,11 @@ class Settings:
             photo_from_reel=os.environ.get("BURP_PHOTO_FROM_REEL", "").strip().lower()
             in ("1", "true", "yes", "si", "sì"),
         )
+
+
+def anthropic_client(settings: "Settings"):
+    """The API client. A request that hangs fails after 3 minutes and is retried, instead of
+    blocking the bot or the worker for the SDK's default 10 minutes per attempt."""
+    import anthropic
+
+    return anthropic.Anthropic(api_key=settings.anthropic_api_key, timeout=180, max_retries=2)

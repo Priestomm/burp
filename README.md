@@ -53,6 +53,7 @@ Serve [uv](https://docs.astral.sh/uv/) (Python ≥ 3.13).
 ```sh
 uv sync                    # basta per caption incollata e screenshot
 uv sync --extra media      # in più: scarico dei link (yt-dlp), trascrizione (faster-whisper), frame (PyAV)
+uv sync --extra media --extra cutout   # in più: scontorno locale con rembg, per il tema Zine
 cp .env.example .env       # poi compila ANTHROPIC_API_KEY (e i token Telegram se usi il bot)
 ```
 
@@ -68,6 +69,10 @@ Chiavi e token si leggono dalle variabili d'ambiente o da `.env`, che git ignora
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_USER_IDS` | bot Telegram |
 | `WHISPER_MODEL` | modello Whisper locale (`tiny`, `base`, `small`…) |
 | `INSTAGRAM_COOKIES_FILE` | cookie per i link che richiedono il login |
+| `BURP_PHOTO_FROM_REEL` | foto del piatto anche dal video del reel (spenta; solo uso personale) |
+| `PEXELS_API_KEY` | tema Zine: foto degli ingredienti freschi da Pexels (gratuita su pexels.com/api) |
+| `BURP_CONTACT_EMAIL` | contatto nello User-Agent verso Open Food Facts, che lo chiede alle app |
+| `BURP_CUTOUT_MODEL` | modello di rembg per lo scontorno (default `silueta`, 44 MB al primo uso) |
 
 ## CLI
 
@@ -150,6 +155,27 @@ uv run burp photos-from-reels             # riscarica i loro reel una volta e me
 ```
 
 Dopo ogni foto i file di partenza (video e screenshot copiati) vengono cancellati: restano solo il fotogramma scelto e la sua stampa.
+
+## Tema Zine
+
+In `/impostazioni` scegli tra due temi: **Adesivi** e **Zine**. Dati e funzioni sono gli stessi; cambiano la pagina e una parte delle immagini.
+
+Lo Zine è una pagina di fanzine su carta gialla: il fotogramma del piatto fotocopiato (dithering a 1 bit, macchioline di toner, ombra del coperchio, bordo strappato) con il ritaglio del piatto che ne esce, gli ingredienti come ritagli fotocopiati a forbice, la tabella delle dosi per 1, 2, 3… persone, e le note a pennarello blu generate dai dati: «io!» sulla colonna dell'1, un anello con «quanti?» attorno alle quantità mancanti, un'ondulata sotto tempi e temperature. «L'ho cucinata» scrive da sé «burp!» con la data.
+
+Le immagini dello Zine si preparano in background, come la foto:
+
+- **Piatto**: la fotocopia e il ritaglio partono dal fotogramma già scelto per gli Adesivi. Il ritaglio usa rembg, in locale (extra `cutout`).
+- **Ingredienti**: il modello veloce scrive le ricerche (una chiamata per ricetta), i prodotti confezionati si cercano su **Open Food Facts** (foto CC BY-SA 3.0: le nostre fotocopie ne sono derivate e restano CC BY-SA), gli altri su **Pexels** (serve `PEXELS_API_KEY`). Il modello sceglie la foto migliore tra 3-5, che viene scontornata, ritagliata a forbice e fotocopiata. Unsplash non si usa: la sua API obbliga a mostrare le immagini dai suoi indirizzi, senza modificarle.
+- Ogni ingrediente si cerca **una volta sola** e si riusa in tutte le ricette. Se non c'è una foto buona resta un biglietto di carta con il nome: mai immagini generate.
+- Le attribuzioni (fotografo e Pexels, prodotto e licenza Open Food Facts) sono in fondo alla pagina.
+
+```sh
+uv run burp zine-images          # stampe Zine delle foto esistenti e ingredienti di tutte le ricette
+uv run burp worker --once        # le prepara (il bot lo fa da solo)
+uv run burp backfill-words       # la parola nella lingua della cucina, per le ricette già salvate
+```
+
+La **parola in verticale** (per esempio もちもち, «consistenza gommosa») la scrive il modello durante l'import, solo se la cucina d'origine usa un alfabeto non latino e se è sicuro della parola.
 
 ## Web app
 

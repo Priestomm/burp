@@ -214,3 +214,20 @@ def test_the_prompt_explains_the_title_split(catalog):
 def test_an_empty_first_line_falls_back_to_the_title(catalog):
     recipe = finalize(valid_recipe(nome_riga_1="  "), catalog)
     assert recipe.nome_riga_1 == "Dal tadka"
+
+
+def test_the_cuisine_word_must_be_in_a_non_latin_script(catalog):
+    from burp.models import CuisineWord
+
+    word = CuisineWord(lingua="ja", parola="もちもち", traduzione="consistenza gommosa")
+    assert finalize(valid_recipe(parola_cucina=word.model_dump()), catalog).parola_cucina == word
+    latin = {"lingua": "it", "parola": "gnocchi", "traduzione": "gnocchi"}
+    assert finalize(valid_recipe(parola_cucina=latin), catalog).parola_cucina is None
+    assert finalize(valid_recipe(), catalog).parola_cucina is None
+
+
+def test_the_prompt_asks_for_the_word_only_when_sure(catalog):
+    client = FakeClient(valid_recipe())
+    structure_recipe("text", catalog, client, "m")
+    system = client.calls[0]["system"][0]["text"]
+    assert "parola_cucina" in system and "non inventare" in system

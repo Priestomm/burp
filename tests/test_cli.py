@@ -249,3 +249,20 @@ def test_zine_images_queues_prints_and_ingredient_pictures(library, capsys):
     assert [j.kind for j in library.jobs(3)] == ["ingredients"]  # no photo
     assert main(["zine-images", "--all"], library=library) == 0
     assert [j.kind for j in library.jobs(2)] == ["ingredients", "zine", "ingredients"]
+
+
+def test_backfill_words_saves_only_real_cuisine_words(library, capsys):
+    from burp.models import ImportedRecipe
+    from burp.structure import WordAnswer
+
+    library.add(
+        ImportedRecipe(recipe=valid_recipe(title="Gnocchi di tofu"), content_source="caption")
+    )
+    library.add(ImportedRecipe(recipe=valid_recipe(title="Carbonara"), content_source="caption"))
+    word = {"lingua": "ja", "parola": "もちもち", "traduzione": "consistenza gommosa"}
+    client = FakeClient(WordAnswer(parola_cucina=word), WordAnswer(parola_cucina=None))
+    assert main(["backfill-words"], client=client, library=library) == 0
+    # The library lists the newest first: the carbonara was asked first and got nothing.
+    assert library.get(1).recipe.parola_cucina is None
+    assert library.get(2).recipe.parola_cucina.parola == "もちもち"
+    assert "もちもち (ja)" in capsys.readouterr().out
