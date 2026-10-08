@@ -158,6 +158,15 @@ def create_app(db_path: Path | str | None = None, media_dir: Path | None = None)
             raise HTTPException(404, str(error)) from error
         return detail(lib, saved)
 
+    @app.get("/", include_in_schema=False)
+    def root() -> dict[str, str]:
+        """Opened in a browser by mistake: point to the dashboard."""
+        return {
+            "burp": "Questa è l'API di burp!. La dashboard è su http://localhost:3000 "
+            "(cd web && pnpm dev).",
+            "docs": "/api/docs",
+        }
+
     @app.get("/api/media/{file_path:path}", operation_id="getMedia", include_in_schema=False)
     def media(file_path: str) -> FileResponse:
         target = (media_root / file_path).resolve()

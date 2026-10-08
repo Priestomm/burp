@@ -201,3 +201,8 @@ def test_parallel_requests_on_a_real_server(db):
         server.should_exit = True
         thread.join(timeout=5)
     assert codes == [200] * len(paths)
+
+
+def test_the_root_points_to_the_dashboard(api):
+    body = api.get("/").json()
+    assert "localhost:3000" in body["burp"]
