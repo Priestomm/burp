@@ -16,3 +16,25 @@ jobs:
       - run: uv run ruff format --check .
       - run: uv run pytest
 
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      # The API types must match the Pydantic models they are generated from.
+      - run: pnpm gen:api && git diff --exit-code -- src/lib/api
+      - run: pnpm build

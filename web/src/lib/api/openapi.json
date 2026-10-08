@@ -1,0 +1,831 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "burp!",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/recipes": {
+      "get": {
+        "summary": "List Recipes",
+        "description": "The library, newest first; `q` keeps recipes where every word is in the title,\nthe tags or the ingredients.",
+        "operationId": "listRecipes",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LibraryItem"
+                  },
+                  "title": "Response Listrecipes"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/recipes/{recipe_id}": {
+      "get": {
+        "summary": "Get Recipe",
+        "operationId": "getRecipe",
+        "parameters": [
+          {
+            "name": "recipe_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Recipe Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecipeDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/recipes/{recipe_id}/ingredients/{index}": {
+      "put": {
+        "summary": "Set Quantity",
+        "description": "\"Li scrivo io\": the user writes a quantity the post did not give.",
+        "operationId": "setQuantity",
+        "parameters": [
+          {
+            "name": "recipe_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Recipe Id"
+            }
+          },
+          {
+            "name": "index",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Index"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuantityIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecipeDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/recipes/{recipe_id}/ingredients/{index}/edit": {
+      "delete": {
+        "summary": "Clear Edit",
+        "operationId": "clearEdit",
+        "parameters": [
+          {
+            "name": "recipe_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Recipe Id"
+            }
+          },
+          {
+            "name": "index",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Index"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecipeDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/recipes/{recipe_id}/by-eye": {
+      "post": {
+        "summary": "Mark By Eye",
+        "description": "\"Sì, a occhio\": these quantities stay unknown, and that is fine.",
+        "operationId": "markByEye",
+        "parameters": [
+          {
+            "name": "recipe_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Recipe Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ByEyeIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecipeDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/recipes/{recipe_id}/cooked": {
+      "post": {
+        "summary": "Mark Cooked",
+        "operationId": "markCooked",
+        "parameters": [
+          {
+            "name": "recipe_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Recipe Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookedOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ByEyeIn": {
+        "properties": {
+          "indices": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Indices"
+          }
+        },
+        "type": "object",
+        "required": [
+          "indices"
+        ],
+        "title": "ByEyeIn"
+      },
+      "Completeness": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "complete",
+              "partial"
+            ],
+            "title": "Status"
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing",
+            "description": "Cosa la fonte non dice, in italiano, es. 'quantità della pasta'"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "Completeness"
+      },
+      "CookedOut": {
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "last": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count",
+          "last"
+        ],
+        "title": "CookedOut"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "IngredientView": {
+        "properties": {
+          "index": {
+            "type": "integer",
+            "title": "Index"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "original_text": {
+            "type": "string",
+            "title": "Original Text"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "given",
+              "to_taste",
+              "missing",
+              "by_eye"
+            ],
+            "title": "Status"
+          },
+          "base_unit": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "g",
+                  "ml",
+                  "tsp",
+                  "piece"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Unit"
+          },
+          "base_quantity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Quantity"
+          },
+          "edited": {
+            "type": "boolean",
+            "title": "Edited"
+          }
+        },
+        "type": "object",
+        "required": [
+          "index",
+          "name",
+          "original_text",
+          "quantity",
+          "unit",
+          "status",
+          "base_unit",
+          "base_quantity",
+          "edited"
+        ],
+        "title": "IngredientView"
+      },
+      "LibraryItem": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "nome_riga_1": {
+            "type": "string",
+            "title": "Nome Riga 1"
+          },
+          "nome_riga_2": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nome Riga 2"
+          },
+          "diet": {
+            "type": "string",
+            "enum": [
+              "vegan",
+              "vegetarian",
+              "neither"
+            ],
+            "title": "Diet"
+          },
+          "course": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "antipasto",
+                  "primo",
+                  "secondo",
+                  "contorno",
+                  "piatto unico",
+                  "dolce",
+                  "colazione",
+                  "snack",
+                  "bevanda",
+                  "salsa"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Course"
+          },
+          "cuisine": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cuisine"
+          },
+          "to_clarify": {
+            "type": "integer",
+            "title": "To Clarify",
+            "description": "Quantities still unknown, plus 1 if there are no steps"
+          },
+          "cooked": {
+            "$ref": "#/components/schemas/CookedOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "nome_riga_1",
+          "nome_riga_2",
+          "diet",
+          "course",
+          "cuisine",
+          "to_clarify",
+          "cooked"
+        ],
+        "title": "LibraryItem"
+      },
+      "QuantityIn": {
+        "properties": {
+          "quantity": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Quantity"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "quantity"
+        ],
+        "title": "QuantityIn"
+      },
+      "RecipeDetail": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "nome_riga_1": {
+            "type": "string",
+            "title": "Nome Riga 1"
+          },
+          "nome_riga_2": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nome Riga 2"
+          },
+          "descrittore": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descrittore"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url"
+          },
+          "author_handle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author Handle"
+          },
+          "servings": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Servings"
+          },
+          "time_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time Minutes"
+          },
+          "tags": {
+            "$ref": "#/components/schemas/Tags"
+          },
+          "ingredients": {
+            "items": {
+              "$ref": "#/components/schemas/IngredientView"
+            },
+            "type": "array",
+            "title": "Ingredients"
+          },
+          "steps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Steps"
+          },
+          "still_missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Still Missing",
+            "description": "Ingredients whose quantity is still unknown"
+          },
+          "completeness": {
+            "$ref": "#/components/schemas/Completeness",
+            "description": "What the post did not say, as imported"
+          },
+          "content_source": {
+            "type": "string",
+            "enum": [
+              "caption",
+              "transcript",
+              "frames"
+            ],
+            "title": "Content Source"
+          },
+          "cooked": {
+            "$ref": "#/components/schemas/CookedOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "title",
+          "nome_riga_1",
+          "nome_riga_2",
+          "descrittore",
+          "source_url",
+          "author_handle",
+          "servings",
+          "time_minutes",
+          "tags",
+          "ingredients",
+          "steps",
+          "still_missing",
+          "completeness",
+          "content_source",
+          "cooked"
+        ],
+        "title": "RecipeDetail"
+      },
+      "Tags": {
+        "properties": {
+          "cuisine": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cuisine",
+            "description": "In italiano, es. italiana, indiana"
+          },
+          "course": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "antipasto",
+                  "primo",
+                  "secondo",
+                  "contorno",
+                  "piatto unico",
+                  "dolce",
+                  "colazione",
+                  "snack",
+                  "bevanda",
+                  "salsa"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Course"
+          },
+          "diet": {
+            "type": "string",
+            "enum": [
+              "vegan",
+              "vegetarian",
+              "neither"
+            ],
+            "title": "Diet"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "diet"
+        ],
+        "title": "Tags"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

@@ -120,6 +120,10 @@ Per consultare la libreria dal telefono (i comandi compaiono anche nel menu di T
 | `/ricetta 3` | la ricetta completa: ingredienti con le righe originali, procedimento, cosa manca |
 | `/aiuto` | cosa sa fare il bot |
 
+## Web app
+
+La dashboard è in `web/` (Next.js): vedi [web/README.md](web/README.md). In breve, `uv run burp serve` in un terminale e `cd web && pnpm dev` in un altro, poi http://localhost:3000. Per ora gira solo in locale e senza login.
+
 ## Test
 
 ```sh

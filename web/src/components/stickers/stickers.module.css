@@ -1,0 +1,40 @@
+.sticker {
+  display: block;
+  overflow: visible;
+  height: auto;
+  max-width: 100%;
+}
+
+/* Constant line widths at any size, as on a printed sticker sheet. */
+.kiss {
+  fill: #fff;
+  stroke: #fff;
+  stroke-width: 10px;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.edge {
+  stroke: var(--ink, #171311);
+  stroke-width: 2.4px;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.cond {
+  font-family: var(--font-cond), "Arial Narrow", sans-serif;
+  font-weight: 850;
+  text-anchor: middle;
+  text-transform: uppercase;
+}
+
+.serif {
+  font-family: var(--font-serif), Georgia, serif;
+  text-anchor: middle;
+}
+
+.body {
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-weight: 700;
+  text-anchor: middle;
+}
