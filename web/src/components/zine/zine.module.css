@@ -59,7 +59,6 @@
   margin-bottom: 40px;
 }
 
-.copy > img.printed,
 .copy > img.rough,
 .blank {
   display: block;
@@ -67,6 +66,15 @@
   aspect-ratio: 1000 / 620;
   object-fit: cover;
   filter: drop-shadow(2.5px 3.5px 5px rgb(70 45 0 / 30%));
+}
+
+/* The print is already cut to size; shown whole, torn edge included. */
+.copy > img.printed {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(2.5px 3.5px 5px rgb(70 45 0 / 30%));
+  image-rendering: pixelated;
 }
 
 /* Until the photocopy is ready: the original frame, greyed and hard. */

@@ -149,10 +149,14 @@ def test_worker_makes_the_photo_in_the_background(library, saved, tmp_path):
     assert library.jobs(saved.id)[0].status == "queued"
 
     assert run_once(library, FakePicker(good()), tmp_path) is True
-    [job] = library.jobs(saved.id)
+    job, zine = library.jobs(saved.id)
     assert (job.id, job.status) == (job_id, "done")
+    assert (zine.kind, zine.status) == ("zine", "queued")  # the Zine prints come next
     media = library.media(saved.id)
     assert media.creator == "giuliapisco" and (tmp_path / media.halftone).exists()
+    assert run_once(library, FakePicker(good()), tmp_path) is True  # the zine job
+    assert library.media(saved.id).photocopy == f"{saved.id}/photocopy.png"
+    assert (tmp_path / library.media(saved.id).photocopy).exists()
     assert run_once(library, FakePicker(good()), tmp_path) is False  # queue empty
 
 
@@ -182,7 +186,7 @@ def test_media_goes_with_the_recipe(library, saved, tmp_path):
 
 def test_new_libraries_get_the_media_tables(tmp_path, catalog):
     with Library(tmp_path / "x.db", catalog) as lib:
-        assert lib.conn.execute("PRAGMA user_version").fetchone()[0] == 2
+        assert lib.conn.execute("PRAGMA user_version").fetchone()[0] == 3
 
 
 def test_inputs_are_deleted_after_the_job(library, saved, tmp_path):
@@ -228,3 +232,22 @@ def test_frames_of_the_reel_are_marked_as_reel(tmp_path):
             out.mux(packet)
     outcome = make_photo(3, [video], FakePicker(good(best=4)), tmp_path / "media")
     assert outcome.media.source == "reel"
+
+
+def test_zine_job_without_a_photo_does_nothing(library, saved, tmp_path):
+    from burp.worker import ZINE
+
+    library.enqueue(ZINE, saved.id, [])
+    run_once(library, FakePicker(good()), tmp_path)
+    [job] = library.jobs(saved.id)
+    assert job.status == "done" and "nessuna foto" in job.note
+
+
+def test_the_photocopy_sheet_is_landscape_whatever_the_frame():
+    from PIL import Image
+
+    from burp.worker import SHEET_RATIO, landscape
+
+    for size in [(1080, 1920), (1920, 1080), (1000, 1000)]:
+        out = landscape(Image.new("RGB", size))
+        assert abs(out.width / out.height - SHEET_RATIO) < 0.01

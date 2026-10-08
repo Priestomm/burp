@@ -118,6 +118,8 @@ def _photo(media: Media | None) -> PhotoOut | None:
         source=media.source,
         creator=media.creator,
         source_url=media.source_url,
+        photocopy_src=f"/api/media/{media.photocopy}" if media.photocopy else None,
+        cutout_src=f"/api/media/{media.cutout}" if media.cutout else None,
     )
 
 

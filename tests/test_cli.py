@@ -231,3 +231,18 @@ def test_photos_from_reels_queues_the_recipes_without_a_photo(
     # Queued already: a second run does not download it again.
     main(["photos-from-reels"], library=library)
     assert fetched == [url]
+
+
+def test_zine_images_queues_recipes_with_a_photo(library, capsys):
+    from burp.library import Media
+    from burp.models import ImportedRecipe
+
+    for _ in range(3):
+        library.add(ImportedRecipe(recipe=valid_recipe(), content_source="caption"))
+    library.set_media(1, Media("1/original.jpg", "1/halftone.png", "reel", 0.9, "x", None, None))
+    library.set_media(2, Media("2/original.jpg", "2/halftone.png", "reel", 0.9, "x", None, None))
+    library.set_zine_media(2, photocopy="2/photocopy.png")
+    assert main(["zine-images"], library=library) == 0
+    assert [j.kind for j in library.jobs(1)] == ["zine"] and library.jobs(2) == []
+    assert main(["zine-images", "--all"], library=library) == 0
+    assert len(library.jobs(2)) == 1 and library.jobs(3) == []

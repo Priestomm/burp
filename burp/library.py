@@ -78,6 +78,10 @@ MIGRATIONS = [
     );
     CREATE INDEX IF NOT EXISTS jobs_status ON jobs(status, id);
     """,
+    """
+    ALTER TABLE media ADD COLUMN photocopy TEXT;
+    ALTER TABLE media ADD COLUMN cutout TEXT;
+    """,
 ]
 
 
@@ -92,6 +96,8 @@ class Media:
     alt: str
     creator: str | None
     source_url: str | None
+    photocopy: str | None = None  # Zine: the dish photocopied, with its torn edge
+    cutout: str | None = None  # Zine: the dish cut out with scissors
 
 
 @dataclass(frozen=True)
@@ -331,10 +337,21 @@ class Library:
                 ),
             )
 
+    def set_zine_media(
+        self, recipe_id: int, photocopy: str | None = None, cutout: str | None = None
+    ) -> None:
+        """Store the Zine prints of the dish photo (it must exist already)."""
+        with self.conn:
+            self.conn.execute(
+                "UPDATE media SET photocopy = COALESCE(?, photocopy), cutout = COALESCE(?, cutout)"
+                " WHERE recipe_id = ?",
+                (photocopy, cutout, recipe_id),
+            )
+
     def media(self, recipe_id: int) -> Media | None:
         row = self.conn.execute(
-            "SELECT original, halftone, source, confidence, alt, creator, source_url FROM media"
-            " WHERE recipe_id = ?",
+            "SELECT original, halftone, source, confidence, alt, creator, source_url, photocopy,"
+            " cutout FROM media WHERE recipe_id = ?",
             (recipe_id,),
         ).fetchone()
         return Media(**dict(row)) if row else None

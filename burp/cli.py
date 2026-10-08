@@ -27,7 +27,7 @@ from burp.pipeline import import_post
 from burp.render import full_text, one_line, summarize
 from burp.structure import split_title
 from burp.transcribe import FasterWhisperTranscriber
-from burp.worker import queue_photo, run_forever, run_once
+from burp.worker import ZINE, queue_photo, run_forever, run_once
 
 
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
@@ -74,6 +74,9 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
         help="dish photos from the reels of saved recipes (needs BURP_PHOTO_FROM_REEL=true)",
     )
     reels.add_argument("--dry-run", action="store_true", help="list them, download nothing")
+
+    zine = commands.add_parser("zine-images", help="queue the Zine prints of existing photos")
+    zine.add_argument("--all", action="store_true", help="also redo the ones already made")
 
     worker = commands.add_parser("worker", help="run background jobs (dish photos)")
     worker.add_argument("--once", action="store_true", help="empty the queue, then stop")
@@ -159,6 +162,8 @@ def main(
             return attach_photo(args, settings, library)
         case "photos-from-reels":
             return photos_from_reels(args, settings, library)
+        case "zine-images":
+            return queue_zine_images(args, library)
         case "worker":
             return run_worker(args, settings, library, client)
         case "delete":
@@ -294,6 +299,18 @@ def photos_from_reels(args: argparse.Namespace, settings: Settings, library: Lib
             continue
         queue_photo(library, saved.id, [], settings.media_dir, reel=post.downloaded_video)
         print(f"#{saved.id}: foto in coda")
+    return 0
+
+
+def queue_zine_images(args: argparse.Namespace, library: Library) -> int:
+    queued = 0
+    for saved in library.search():
+        media = library.media(saved.id)
+        if media is None or (media.photocopy and not args.all):
+            continue
+        library.enqueue(ZINE, saved.id, [])
+        queued += 1
+    print(f"{queued} ricette in coda per le stampe Zine: `burp worker --once` (o il bot)")
     return 0
 
 
