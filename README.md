@@ -182,7 +182,15 @@ La **parola in verticale** (per esempio もちもち, «consistenza gommosa») l
 La dashboard è in `web/` (Next.js 16, React 19, TypeScript): vedi [web/README.md](web/README.md).
 
 ```sh
+uv run burp dev            # API, bot e dashboard insieme; Ctrl+C li ferma tutti
+uv run burp dev --no-bot   # solo API e dashboard (--no-web: solo la parte Python)
+```
+
+I log arrivano nello stesso terminale con il prefisso `[api]`, `[bot]` o `[web]`; se uno dei tre si ferma, `burp dev` chiude anche gli altri e dice quale. Il bot parte solo se nel `.env` ci sono `TELEGRAM_BOT_TOKEN` e `TELEGRAM_ALLOWED_USER_IDS`. Per avviarli a mano, uno per terminale:
+
+```sh
 uv run burp serve          # API su 127.0.0.1:8000
+uv run burp bot            # bot Telegram (fa girare anche il worker)
 cd web && pnpm dev         # http://localhost:3000
 ```
 

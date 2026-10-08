@@ -6,6 +6,7 @@
     uv run burp search carbonara --tag primo --ingredient pecorino
     uv run burp show 3
     uv run burp bot
+    uv run burp dev          # API, bot and web app together; Ctrl+C stops them all
 
 The manual inputs (--caption, --caption-file, --screenshot) always work, with no video download.
 """
@@ -96,6 +97,10 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
 
     commands.add_parser("bot", help="run the Telegram bot (it also runs the jobs)")
 
+    dev = commands.add_parser("dev", help="run the API, the bot and the web app together")
+    dev.add_argument("--no-bot", action="store_true", help="leave the Telegram bot off")
+    dev.add_argument("--no-web", action="store_true", help="leave the web app off")
+
     args = parser.parse_args(argv)
     if args.command == "import" and not (
         args.url or args.caption or args.caption_file or args.screenshot or args.video
@@ -149,6 +154,16 @@ def main(
         from burp.bot import main as bot_main
 
         return bot_main()
+    if args.command == "dev":
+        from burp import dev
+
+        chosen, skipped = dev.services(settings, bot=not args.no_bot, web=not args.no_web)
+        for reason in skipped:
+            print(f"salto {reason}", file=sys.stderr)
+        print(
+            "avvio " + ", ".join(s.name for s in chosen) + " (Ctrl+C per fermare)", file=sys.stderr
+        )
+        return dev.run(chosen)
 
     catalog = SynonymIndex(load_ingredients())
     library = library or Library(settings.db_path, catalog)
