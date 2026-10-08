@@ -6,6 +6,8 @@ dependencies = [
     "anthropic>=1.7.0",
     "fastapi>=0.142.4",
     "httpx>=0.28.1",
+    "numpy>=2.5.3",
+    "pillow>=12.3.0",
     "pydantic>=2.13.5",
     "uvicorn>=0.54.0",
 ]
@@ -14,7 +16,7 @@ dependencies = [
 burp = "burp.cli:main"
 
 [project.optional-dependencies]
-media = ["yt-dlp>=2025.1.1", "faster-whisper>=1.1.0", "av>=14.0.0", "pillow>=11.0.0"]
+media = ["yt-dlp>=2025.1.1", "faster-whisper>=1.1.0", "av>=14.0.0"]
 
 [build-system]
 requires = ["hatchling"]
