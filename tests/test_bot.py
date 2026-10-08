@@ -222,3 +222,109 @@ def test_an_unexpected_error_is_reported_instead_of_leaving_the_chat_silent(libr
     handle_update(message("ciao"), make_api(sent), ALLOWED, bug, library)
     assert "Errore imprevisto (ModuleNotFoundError" in sent[0]["text"]
     assert "screenshot" in sent[0]["text"]
+
+
+DISH = Path(__file__).parent / "fixtures" / "images" / "piatto.jpg"
+
+
+def video_message(text="", size=1_000_000, as_document=False) -> dict:
+    body = {"chat": {"id": 7}, "from": {"id": 42}}
+    if text:
+        body["caption"] = text
+    clip = {"file_id": "clip", "file_size": size}
+    if as_document:
+        body["document"] = {**clip, "mime_type": "video/mp4"}
+    else:
+        body["video"] = clip
+    return {"update_id": 1, "message": body}
+
+
+def test_parse_update_reads_videos_and_video_files():
+    assert parse_update(video_message()).video_file_id == "clip"
+    assert parse_update(video_message(as_document=True)).video_file_id == "clip"
+    assert parse_update(message("ciao")).video_file_id is None
+
+
+def test_a_photo_with_the_recipe_queues_the_dish_photo(library, tmp_path):
+    sent: list[dict] = []
+    text = (CAPTIONS / "completa.txt").read_text()
+    api = make_api(sent, {"a": DISH.read_bytes()})
+    handle_update(
+        message(text, photo="large"), api, ALLOWED, importer(), library, media_dir=tmp_path
+    )
+    assert "Preparo la foto del piatto." in sent[0]["text"]
+    [job] = library.jobs(1)
+    assert job.status == "queued" and (tmp_path / job.inputs[0]).read_bytes() == DISH.read_bytes()
+
+
+def test_a_shared_link_does_not_make_a_photo(library, tmp_path):
+    sent: list[dict] = []
+    text = (CAPTIONS / "completa.txt").read_text()
+    handle_update(message(text), make_api(sent), ALLOWED, importer(), library, media_dir=tmp_path)
+    assert "Preparo la foto" not in sent[0]["text"]
+    assert library.jobs(1) == []
+
+
+def test_a_video_is_imported_as_the_user_s_own_media(library, tmp_path):
+    sent: list[dict] = []
+    seen = {}
+
+    def run_import(post):
+        seen["post"] = post
+        return importer()(post.__class__(caption=(CAPTIONS / "completa.txt").read_text()))
+
+    handle_update(
+        video_message("guarda!"), make_api(sent), ALLOWED, run_import, library, media_dir=tmp_path
+    )
+    post = seen["post"]
+    assert post.video_from_user and post.video_path.name == "clip.mp4"
+    assert "Preparo la foto del piatto." in sent[0]["text"]
+
+
+def test_a_video_over_20_mb_is_refused_with_an_alternative(library, tmp_path):
+    sent: list[dict] = []
+
+    def must_not_run(post):
+        raise AssertionError("must not import")
+
+    big = video_message(size=25 * 1024 * 1024)
+    handle_update(big, make_api(sent), ALLOWED, must_not_run, library, media_dir=tmp_path)
+    assert "20 MB" in sent[0]["text"] and "screenshot" in sent[0]["text"]
+
+
+def test_foto_command_gives_a_photo_to_a_saved_recipe(library, tmp_path):
+    from burp.models import ImportedRecipe
+
+    library.add(ImportedRecipe(recipe=valid_recipe(), content_source="caption"))
+    sent: list[dict] = []
+    api = make_api(sent, {"a": DISH.read_bytes()})
+
+    def must_not_import(post):
+        raise AssertionError("/foto is not an import")
+
+    handle_update(
+        message("/foto 1", photo="large"),
+        api,
+        ALLOWED,
+        must_not_import,
+        library,
+        media_dir=tmp_path,
+    )
+    assert "ricetta #1" in sent[-1]["text"]
+    assert library.jobs(1)[0].status == "queued"
+
+    handle_update(message("/foto 1"), api, ALLOWED, must_not_import, library, media_dir=tmp_path)
+    assert "Allega un'immagine" in sent[-1]["text"]
+    handle_update(
+        message("/foto 9", photo="large"),
+        api,
+        ALLOWED,
+        must_not_import,
+        library,
+        media_dir=tmp_path,
+    )
+    assert "#9" in sent[-1]["text"]
+    handle_update(
+        message("/foto", photo="large"), api, ALLOWED, must_not_import, library, media_dir=tmp_path
+    )
+    assert "numero della ricetta" in sent[-1]["text"]

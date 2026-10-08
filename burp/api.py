@@ -9,11 +9,12 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from burp.catalog import SynonymIndex, load_ingredients
 from burp.config import Settings
-from burp.library import Cooked, Library, SavedRecipe
+from burp.library import Cooked, Library, Media, SavedRecipe
 from burp.models import Completeness, ContentSource, Course, Diet, Tags
 from burp.view import IngredientView, ingredient_views, missing_names
 
@@ -21,6 +22,15 @@ from burp.view import IngredientView, ingredient_views, missing_names
 class CookedOut(BaseModel):
     count: int
     last: str | None
+
+
+class PhotoOut(BaseModel):
+    src: str = Field(description="The halftone print, path under /api/media")
+    original_src: str
+    alt: str
+    source: str = Field(description="frame (from a video you sent) or screenshot")
+    creator: str | None
+    source_url: str | None
 
 
 class LibraryItem(BaseModel):
@@ -53,6 +63,8 @@ class RecipeDetail(BaseModel):
     completeness: Completeness = Field(description="What the post did not say, as imported")
     content_source: ContentSource
     cooked: CookedOut
+    photo: PhotoOut | None
+    photo_pending: bool = Field(description="A dish photo is being made")
 
 
 class QuantityIn(BaseModel):
@@ -72,7 +84,20 @@ def _cooked(cooked: Cooked) -> CookedOut:
     return CookedOut(count=cooked.count, last=cooked.last)
 
 
-def detail(saved: SavedRecipe, cooked: Cooked) -> RecipeDetail:
+def _photo(media: Media | None) -> PhotoOut | None:
+    if media is None:
+        return None
+    return PhotoOut(
+        src=f"/api/media/{media.halftone}",
+        original_src=f"/api/media/{media.original}",
+        alt=media.alt,
+        source=media.source,
+        creator=media.creator,
+        source_url=media.source_url,
+    )
+
+
+def detail(lib: Library, saved: SavedRecipe) -> RecipeDetail:
     recipe = saved.recipe
     return RecipeDetail(
         id=saved.id,
@@ -91,12 +116,16 @@ def detail(saved: SavedRecipe, cooked: Cooked) -> RecipeDetail:
         still_missing=missing_names(saved.imported),
         completeness=recipe.completeness,
         content_source=saved.imported.content_source,
-        cooked=_cooked(cooked),
+        cooked=_cooked(lib.cooked(saved.id)),
+        photo=_photo(lib.media(saved.id)),
+        photo_pending=any(job.status in ("queued", "running") for job in lib.jobs(saved.id)),
     )
 
 
-def create_app(db_path: Path | str | None = None) -> FastAPI:
-    path = db_path or Settings.from_env().db_path
+def create_app(db_path: Path | str | None = None, media_dir: Path | None = None) -> FastAPI:
+    settings = Settings.from_env()
+    path = db_path or settings.db_path
+    media_root = (media_dir or settings.media_dir).resolve()
     catalog = SynonymIndex(load_ingredients())
     app = FastAPI(
         title="burp!",
@@ -127,7 +156,16 @@ def create_app(db_path: Path | str | None = None) -> FastAPI:
             raise HTTPException(404, f"Non c'è nessuna ricetta #{recipe_id}.") from error
         except IndexError as error:
             raise HTTPException(404, str(error)) from error
-        return detail(saved, lib.cooked(recipe_id))
+        return detail(lib, saved)
+
+    @app.get("/api/media/{file_path:path}", operation_id="getMedia", include_in_schema=False)
+    def media(file_path: str) -> FileResponse:
+        target = (media_root / file_path).resolve()
+        # Only the dish photos: nothing outside the media folder, not the stashed inputs.
+        inside = target.is_relative_to(media_root) and "inputs" not in target.parts
+        if not inside or not target.is_file():
+            raise HTTPException(404, "Immagine non trovata.")
+        return FileResponse(target, headers={"Cache-Control": "no-cache"})
 
     @app.get("/api/recipes", operation_id="listRecipes")
     def list_recipes(lib: Lib, q: str | None = None) -> list[LibraryItem]:
@@ -151,7 +189,7 @@ def create_app(db_path: Path | str | None = None) -> FastAPI:
 
     @app.get("/api/recipes/{recipe_id}", operation_id="getRecipe")
     def get_recipe(lib: Lib, recipe_id: int) -> RecipeDetail:
-        return detail(found(lib, recipe_id), lib.cooked(recipe_id))
+        return detail(lib, found(lib, recipe_id))
 
     @app.put("/api/recipes/{recipe_id}/ingredients/{index}", operation_id="setQuantity")
     def set_quantity(lib: Lib, recipe_id: int, index: int, body: QuantityIn) -> RecipeDetail:

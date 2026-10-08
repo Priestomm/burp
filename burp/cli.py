@@ -12,6 +12,7 @@ The manual inputs (--caption, --caption-file, --screenshot) always work, with no
 
 import argparse
 import sys
+import threading
 from pathlib import Path
 
 import anthropic
@@ -19,12 +20,14 @@ import anthropic
 from burp.catalog import SynonymIndex, load_ingredients
 from burp.config import Settings, load_env, setup_logging
 from burp.frames import ClaudeFrameDescriber
-from burp.ingest import SourcePost, fetch_instagram, from_caption, from_screenshots
+from burp.ingest import SourcePost, fetch_instagram, from_caption, from_screenshots, from_video
 from burp.library import Library
+from burp.photo import ClaudeFramePicker
 from burp.pipeline import import_post
 from burp.render import full_text, one_line, summarize
 from burp.structure import split_title
 from burp.transcribe import FasterWhisperTranscriber
+from burp.worker import queue_photo, run_forever, run_once
 
 
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
@@ -36,6 +39,7 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     add.add_argument("--caption", help="caption text, pasted")
     add.add_argument("--caption-file", type=Path, help="file with the caption text")
     add.add_argument("--screenshot", nargs="+", type=Path, help="screenshot(s) of the recipe")
+    add.add_argument("--video", type=Path, help="a video you have (screen recording, clip)")
     add.add_argument("--dry-run", action="store_true", help="print the result, do not save")
 
     search = commands.add_parser("search", help="search the library (no filter: list all)")
@@ -61,18 +65,29 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
 
     commands.add_parser("openapi", help="print the API schema (source of the web app types)")
 
-    commands.add_parser("bot", help="run the Telegram bot")
+    photo = commands.add_parser("photo", help="make the dish photo from your images or video")
+    photo.add_argument("id", type=int)
+    photo.add_argument("files", nargs="+", type=Path)
+
+    worker = commands.add_parser("worker", help="run background jobs (dish photos)")
+    worker.add_argument("--once", action="store_true", help="empty the queue, then stop")
+
+    commands.add_parser("bot", help="run the Telegram bot (it also runs the jobs)")
 
     args = parser.parse_args(argv)
     if args.command == "import" and not (
-        args.url or args.caption or args.caption_file or args.screenshot
+        args.url or args.caption or args.caption_file or args.screenshot or args.video
     ):
-        add.error("give at least one of --url, --caption, --caption-file, --screenshot")
+        add.error("give at least one of --url, --caption, --caption-file, --screenshot, --video")
     return args
 
 
 def build_post(args: argparse.Namespace, settings: Settings) -> SourcePost:
     caption = args.caption or (args.caption_file.read_text() if args.caption_file else "")
+    if args.video:
+        post = from_video(args.video, url=args.url, caption=caption)
+        post.screenshot_paths = list(args.screenshot or [])
+        return post
     if args.screenshot:
         return from_screenshots(args.screenshot, url=args.url, caption=caption)
     if caption:
@@ -134,6 +149,10 @@ def main(
             return 0
         case "backfill-titles":
             return backfill_titles(args, settings, library, client)
+        case "photo":
+            return attach_photo(args, settings, library)
+        case "worker":
+            return run_worker(args, settings, library, client)
         case "delete":
             if not library.delete(args.id):
                 print(f"no recipe #{args.id}", file=sys.stderr)
@@ -209,6 +228,48 @@ def run_import(
     else:
         saved, created = library.add(imported)
         print(f"salvata come #{saved.id}" if created else f"già in libreria (#{saved.id})")
+        if created and queue_photo(library, saved.id, post.photo_inputs, settings.media_dir):
+            print("foto del piatto in coda: `burp worker` (o il bot) la prepara")
+    return 0
+
+
+def attach_photo(args: argparse.Namespace, settings: Settings, library: Library) -> int:
+    if library.get(args.id) is None:
+        print(f"no recipe #{args.id}", file=sys.stderr)
+        return 1
+    missing = [str(f) for f in args.files if not f.is_file()]
+    if missing:
+        print(f"file not found: {', '.join(missing)}", file=sys.stderr)
+        return 1
+    if queue_photo(library, args.id, args.files, settings.media_dir) is None:
+        print("nessuna immagine o video tra i file (jpg, png, webp, mp4, mov)", file=sys.stderr)
+        return 1
+    print(f"foto del piatto in coda per #{args.id}")
+    return 0
+
+
+def run_worker(
+    args: argparse.Namespace,
+    settings: Settings,
+    library: Library,
+    client: anthropic.Anthropic | None,
+) -> int:
+    if client is None:
+        if not settings.anthropic_api_key:
+            print("ANTHROPIC_API_KEY is not set (see .env.example)", file=sys.stderr)
+            return 2
+        client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+    picker = ClaudeFramePicker(client, settings.fast_model)
+    if args.once:
+        while run_once(library, picker, settings.media_dir):
+            pass
+        return 0
+    print("worker avviato: Ctrl+C per fermarlo")
+    stop = threading.Event()
+    try:
+        run_forever(lambda: library, picker, settings.media_dir, stop)
+    except KeyboardInterrupt:
+        stop.set()
     return 0
 
 

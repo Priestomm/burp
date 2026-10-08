@@ -10,9 +10,10 @@ URL = "https://www.instagram.com/p/abc/"
 
 
 @pytest.fixture(autouse=True)
-def no_dotenv(monkeypatch):
+def no_dotenv(monkeypatch, tmp_path):
     monkeypatch.setattr("burp.cli.load_env", lambda: None)
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test")
+    monkeypatch.setenv("BURP_MEDIA_DIR", str(tmp_path / "media"))
 
 
 def test_caption_file_is_imported_and_saved(library, capsys):
@@ -157,3 +158,39 @@ def test_backfill_splits_only_titles_that_were_never_split(library, capsys):
     capsys.readouterr()
     assert main(["backfill-titles"], client=FakeClient(), library=library) == 0
     assert "già divisi" in capsys.readouterr().out
+
+
+DISH = Path(__file__).parent / "fixtures" / "images" / "piatto.jpg"
+
+
+def test_screenshots_from_an_import_queue_the_dish_photo(library, capsys, tmp_path):
+    args = ["import", "--caption-file", str(CAPTIONS / "completa.txt"), "--screenshot", str(DISH)]
+    assert main(args, client=FakeClient(valid_recipe()), library=library) == 0
+    assert "foto del piatto in coda" in capsys.readouterr().out
+    [job] = library.jobs(1)
+    assert job.status == "queued"
+    assert (tmp_path / "media" / job.inputs[0]).exists()
+
+
+def test_photo_then_worker_once(library, capsys, tmp_path):
+    from burp.models import ImportedRecipe
+    from burp.photo import Pick
+
+    library.add(ImportedRecipe(recipe=valid_recipe(), content_source="caption"))
+    assert main(["photo", "1", str(DISH)], library=library) == 0
+    pick = Pick(best=1, confidence=0.8, alt="Un piatto di gnocchi", reason="nitida")
+    assert main(["worker", "--once"], client=FakeClient(pick), library=library) == 0
+    media = library.media(1)
+    assert media.alt == "Un piatto di gnocchi"
+    assert (tmp_path / "media" / media.halftone).exists()
+
+
+def test_photo_rejects_unknown_recipes_and_files(library, capsys, tmp_path):
+    assert main(["photo", "9", str(DISH)], library=library) == 1
+    from burp.models import ImportedRecipe
+
+    library.add(ImportedRecipe(recipe=valid_recipe(), content_source="caption"))
+    notes = tmp_path / "notes.txt"
+    notes.write_text("x")
+    assert main(["photo", "1", str(notes)], library=library) == 1
+    assert main(["photo", "1", str(tmp_path / "nope.jpg")], library=library) == 1

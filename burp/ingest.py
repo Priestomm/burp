@@ -32,6 +32,14 @@ class SourcePost:
     video_path: Path | None = None
     screenshot_paths: list[Path] = field(default_factory=list)
     author_handle: str | None = None
+    # True only for a video the user sent: a downloaded reel never becomes the dish photo.
+    video_from_user: bool = False
+
+    @property
+    def photo_inputs(self) -> list[Path]:
+        """What the user handed over that can become the dish photo."""
+        video = [self.video_path] if self.video_path and self.video_from_user else []
+        return [*self.screenshot_paths, *video]
 
 
 def find_instagram_url(text: str) -> str | None:
@@ -70,6 +78,13 @@ def _post(url: str | None, **fields) -> SourcePost:
 
 def from_caption(caption: str, url: str | None = None) -> SourcePost:
     return _post(url, caption=caption.strip())
+
+
+def from_video(path: Path, url: str | None = None, caption: str = "") -> SourcePost:
+    """A video the user sent (a screen recording, a clip): transcribed, and a source of frames."""
+    if not Path(path).is_file():
+        raise IngestionError(f"video not found: {path}")
+    return _post(url, caption=caption.strip(), video_path=Path(path), video_from_user=True)
 
 
 def from_screenshots(paths: list[Path], url: str | None = None, caption: str = "") -> SourcePost:

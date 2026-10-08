@@ -64,6 +64,7 @@ Chiavi e token si leggono dalle variabili d'ambiente o da `.env`, che git ignora
 | `BURP_MODEL` | modello usato (default `claude-opus-5-5`) |
 | `BURP_FAST_MODEL` | modello per i lavori piccoli: dividere i titoli, scegliere il fotogramma (default `claude-haiku-4-5`) |
 | `BURP_DB_PATH` | dove sta la libreria (default `data/burp.db`) |
+| `BURP_MEDIA_DIR` | dove stanno le foto dei piatti (default `data/media`) |
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_USER_IDS` | bot Telegram |
 | `WHISPER_MODEL` | modello Whisper locale (`tiny`, `base`, `small`…) |
 | `INSTAGRAM_COOKIES_FILE` | cookie per i link che richiedono il login |
@@ -119,6 +120,25 @@ Per consultare la libreria dal telefono (i comandi compaiono anche nel menu di T
 | `/cerca vegana ceci` | ricette in cui **ogni parola** compare nel titolo, nei tag (cucina, portata, dieta) o negli ingredienti; senza parole mostra le ultime salvate |
 | `/ricetta 3` | la ricetta completa: ingredienti con le righe originali, procedimento, cosa manca |
 | `/aiuto` | cosa sa fare il bot |
+
+## Foto del piatto
+
+Dopo l'import, un job in background prepara la foto senza far aspettare la ricetta:
+
+1. prende **solo quello che mandi tu**: screenshot, o un video (registrazione dello schermo, clip). Il video scaricato da un link non diventa mai la foto: per Instagram ci limitiamo a leggere il post che condividi;
+2. dai video estrae 10 fotogrammi, 7 dall'ultimo terzo, dove di solito c'è il piatto finito;
+3. un modello veloce (`BURP_FAST_MODEL`) sceglie l'immagine dove il piatto finito si vede meglio, con una confidenza e un testo alternativo. Sotto 0,5 non usa niente;
+4. salva l'originale e una stampa a retino a due inchiostri (rosso a 15°, nero a 45°), con creator e link del post per l'attribuzione.
+
+Senza una foto buona la pagina mostra solo carta e adesivi: **nessuna immagine generata**.
+
+```sh
+uv run burp import --caption-file caption.txt --video registrazione.mov
+uv run burp photo 3 screenshot.jpg            # foto per una ricetta già salvata
+uv run burp worker                            # esegue i job (il bot li esegue già da sé)
+```
+
+Dal bot: manda uno screenshot o un video insieme alla ricetta, oppure un'immagine con didascalia `/foto 3`. I bot Telegram non possono scaricare file oltre i 20 MB.
 
 ## Web app
 

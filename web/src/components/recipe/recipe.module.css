@@ -71,6 +71,15 @@
   object-fit: cover;
 }
 
+.pending {
+  position: absolute;
+  right: 20px;
+  bottom: 16px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--mute);
+}
+
 /* The paper "bites" the photo top right, with concave corners, and holds the second line. */
 .notch {
   position: absolute;

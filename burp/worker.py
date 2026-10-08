@@ -9,11 +9,19 @@ import threading
 from pathlib import Path
 
 from burp.library import Library
-from burp.photo import FramePicker, make_photo
+from burp.photo import FramePicker, make_photo, stash_inputs, user_media
 
 log = logging.getLogger(__name__)
 
 PHOTO = "photo"
+
+
+def queue_photo(library: Library, recipe_id: int, files: list[Path], media_dir: Path) -> int | None:
+    """Queue the dish photo from what the user sent; None when there is nothing usable."""
+    usable = user_media(files)
+    if not usable:
+        return None
+    return library.enqueue(PHOTO, recipe_id, stash_inputs(recipe_id, usable, media_dir))
 
 
 def run_once(library: Library, picker: FramePicker, media_dir: Path) -> bool:

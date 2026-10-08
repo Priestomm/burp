@@ -132,3 +132,33 @@ def test_fetch_reads_the_author_handle(monkeypatch, tmp_path):
     post = fetch_instagram("https://www.instagram.com/p/abc/?igsh=1", workdir=tmp_path)
     assert post.author_handle == "cucina.di.anna"
     assert post.url == "https://www.instagram.com/p/abc/"
+
+
+def test_only_media_from_the_user_can_become_the_dish_photo(tmp_path, monkeypatch):
+    from burp.ingest import from_video
+
+    clip = tmp_path / "clip.mp4"
+    clip.write_bytes(b"video")
+    shot = tmp_path / "shot.jpg"
+    shot.write_bytes(b"jpg")
+    assert from_video(clip).photo_inputs == [clip]
+    assert from_screenshots([shot]).photo_inputs == [shot]
+    assert from_caption("ciao").photo_inputs == []
+
+    # A reel downloaded from the link is transcribed, but never used as the photo.
+    monkeypatch.setattr(ingest.shutil, "which", lambda _: "/usr/bin/yt-dlp")
+
+    def fake_run(command, **_):
+        (tmp_path / "post.mp4").write_bytes(b"video")
+        return type("R", (), {"returncode": 0, "stderr": ""})()
+
+    monkeypatch.setattr(ingest.subprocess, "run", fake_run)
+    post = fetch_instagram("https://www.instagram.com/reel/abc/", workdir=tmp_path)
+    assert post.video_path is not None and post.photo_inputs == []
+
+
+def test_from_video_needs_the_file(tmp_path):
+    from burp.ingest import from_video
+
+    with pytest.raises(IngestionError, match="not found"):
+        from_video(tmp_path / "missing.mp4")

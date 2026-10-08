@@ -200,6 +200,27 @@ export interface components {
             to_clarify: number;
             cooked: components["schemas"]["CookedOut"];
         };
+        /** PhotoOut */
+        PhotoOut: {
+            /**
+             * Src
+             * @description The halftone print, path under /api/media
+             */
+            src: string;
+            /** Original Src */
+            original_src: string;
+            /** Alt */
+            alt: string;
+            /**
+             * Source
+             * @description frame (from a video you sent) or screenshot
+             */
+            source: string;
+            /** Creator */
+            creator: string | null;
+            /** Source Url */
+            source_url: string | null;
+        };
         /** QuantityIn */
         QuantityIn: {
             /** Quantity */
@@ -247,6 +268,12 @@ export interface components {
              */
             content_source: "caption" | "transcript" | "frames";
             cooked: components["schemas"]["CookedOut"];
+            photo: components["schemas"]["PhotoOut"] | null;
+            /**
+             * Photo Pending
+             * @description A dish photo is being made
+             */
+            photo_pending: boolean;
         };
         /** Tags */
         Tags: {

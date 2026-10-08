@@ -34,8 +34,13 @@ def db(tmp_path):
 
 
 @pytest.fixture
-def api(db):
-    return TestClient(create_app(db))
+def media_dir(tmp_path):
+    return tmp_path / "media"
+
+
+@pytest.fixture
+def api(db, media_dir):
+    return TestClient(create_app(db, media_dir))
 
 
 def test_library_lists_recipes_with_what_is_left_to_clarify(api):
@@ -117,6 +122,53 @@ def test_the_schema_names_every_operation(api):
         "markByEye",
         "markCooked",
     }
+
+
+def test_a_recipe_without_photo_says_so(api):
+    recipe = api.get("/api/recipes/1").json()
+    assert recipe["photo"] is None and recipe["photo_pending"] is False
+
+
+def test_photo_pending_while_the_job_waits(api, db, media_dir):
+    from burp.worker import PHOTO
+
+    with Library(db) as lib:
+        lib.enqueue(PHOTO, 1, ["1/inputs/0.jpg"])
+    assert api.get("/api/recipes/1").json()["photo_pending"] is True
+
+
+def test_the_photo_and_its_files(api, db, media_dir):
+    from burp.library import Media
+
+    (media_dir / "1" / "inputs").mkdir(parents=True)
+    (media_dir / "1" / "halftone.png").write_bytes(b"png")
+    (media_dir / "1" / "original.jpg").write_bytes(b"jpg")
+    (media_dir / "1" / "inputs" / "0.jpg").write_bytes(b"private")
+    (media_dir.parent / "secret.txt").write_text("no")
+    with Library(db) as lib:
+        lib.set_media(
+            1,
+            Media(
+                "1/original.jpg", "1/halftone.png", "frame", 0.8, "Gnocchi", "giulia", "https://x"
+            ),
+        )
+
+    photo = api.get("/api/recipes/1").json()["photo"]
+    assert photo == {
+        "src": "/api/media/1/halftone.png",
+        "original_src": "/api/media/1/original.jpg",
+        "alt": "Gnocchi",
+        "source": "frame",
+        "creator": "giulia",
+        "source_url": "https://x",
+    }
+    response = api.get(photo["src"])
+    assert response.status_code == 200 and response.content == b"png"
+    # Only the photos are served: not what the user sent, not anything outside the folder.
+    assert api.get("/api/media/1/inputs/0.jpg").status_code == 404
+    assert api.get("/api/media/../secret.txt").status_code == 404
+    assert api.get("/api/media/%2E%2E/secret.txt").status_code == 404
+    assert api.get("/api/media/1/missing.png").status_code == 404
 
 
 def test_parallel_requests_on_a_real_server(db):

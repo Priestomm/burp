@@ -119,8 +119,18 @@ export function RecipeView({ recipe }: { recipe: RecipeDetail }) {
 
         <div className={styles.shot}>
           <div className={styles.frame}>
-          {/* No dish photo yet: only paper and stickers, never a generated image. */}
-          <div className={styles.photo} aria-hidden="true" />
+          {/* Without a good photo: only paper and stickers, never a generated image. */}
+          <div className={styles.photo}>
+            {recipe.photo ? (
+              // A plain img: the image optimizer would resample and blur the halftone dots.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={recipe.photo.src} alt={recipe.photo.alt} />
+            ) : recipe.photo_pending ? (
+              <p className={styles.pending} role="status">
+                Sto preparando la foto del piatto…
+              </p>
+            ) : null}
+          </div>
           {recipe.nome_riga_2 && (
             <div className={styles.notch} aria-hidden="true">
               <span className={`${styles.giant} cond`} data-size={notchSize(recipe.nome_riga_2)}>
@@ -157,7 +167,7 @@ export function RecipeView({ recipe }: { recipe: RecipeDetail }) {
 
         {(recipe.author_handle || recipe.source_url) && (
           <p className={styles.credit}>
-            Ricetta{" "}
+            {recipe.photo ? "Ricetta e foto" : "Ricetta"}{" "}
             {recipe.source_url ? (
               <a href={recipe.source_url} target="_blank" rel="noreferrer">
                 dal reel

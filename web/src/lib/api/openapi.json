@@ -559,6 +559,60 @@
         ],
         "title": "LibraryItem"
       },
+      "PhotoOut": {
+        "properties": {
+          "src": {
+            "type": "string",
+            "title": "Src",
+            "description": "The halftone print, path under /api/media"
+          },
+          "original_src": {
+            "type": "string",
+            "title": "Original Src"
+          },
+          "alt": {
+            "type": "string",
+            "title": "Alt"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "description": "frame (from a video you sent) or screenshot"
+          },
+          "creator": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Creator"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "src",
+          "original_src",
+          "alt",
+          "source",
+          "creator",
+          "source_url"
+        ],
+        "title": "PhotoOut"
+      },
       "QuantityIn": {
         "properties": {
           "quantity": {
@@ -708,6 +762,21 @@
           },
           "cooked": {
             "$ref": "#/components/schemas/CookedOut"
+          },
+          "photo": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PhotoOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "photo_pending": {
+            "type": "boolean",
+            "title": "Photo Pending",
+            "description": "A dish photo is being made"
           }
         },
         "type": "object",
@@ -728,7 +797,9 @@
           "still_missing",
           "completeness",
           "content_source",
-          "cooked"
+          "cooked",
+          "photo",
+          "photo_pending"
         ],
         "title": "RecipeDetail"
       },
