@@ -4,6 +4,7 @@ The queue is a table in the library, so the bot, the CLI and the API can all add
 any process can run it: `burp worker`, or the thread the bot starts for itself.
 """
 
+import contextlib
 import logging
 import threading
 from pathlib import Path
@@ -16,12 +17,20 @@ log = logging.getLogger(__name__)
 PHOTO = "photo"
 
 
-def queue_photo(library: Library, recipe_id: int, files: list[Path], media_dir: Path) -> int | None:
-    """Queue the dish photo from what the user sent; None when there is nothing usable."""
+def queue_photo(
+    library: Library,
+    recipe_id: int,
+    files: list[Path],
+    media_dir: Path,
+    reel: Path | None = None,
+) -> int | None:
+    """Queue the dish photo from what the user sent, plus the post's own video when the user
+    opted in (`reel`). None when there is nothing usable."""
     usable = user_media(files)
-    if not usable:
+    if not usable and reel is None:
         return None
-    return library.enqueue(PHOTO, recipe_id, stash_inputs(recipe_id, usable, media_dir))
+    inputs = stash_inputs(recipe_id, usable, media_dir, reel=reel)
+    return library.enqueue(PHOTO, recipe_id, inputs)
 
 
 def run_once(library: Library, picker: FramePicker, media_dir: Path) -> bool:
@@ -50,7 +59,21 @@ def run_once(library: Library, picker: FramePicker, media_dir: Path) -> bool:
     except Exception as error:  # one bad job must not stop the queue
         log.exception("job %d failed", job.id)
         library.finish_job(job.id, ok=False, note=f"{type(error).__name__}: {error}")
+    finally:
+        _discard_inputs(media_dir, job.inputs)
     return True
+
+
+def _discard_inputs(media_dir: Path, inputs: list[str]) -> None:
+    """Only the chosen picture and its print are kept: no copies of videos or screenshots."""
+    folders = set()
+    for relative in inputs:
+        path = media_dir / relative
+        path.unlink(missing_ok=True)
+        folders.add(path.parent)
+    for folder in folders:
+        with contextlib.suppress(OSError):  # not empty, or already gone
+            folder.rmdir()
 
 
 def run_forever(

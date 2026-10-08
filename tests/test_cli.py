@@ -194,3 +194,40 @@ def test_photo_rejects_unknown_recipes_and_files(library, capsys, tmp_path):
     notes.write_text("x")
     assert main(["photo", "1", str(notes)], library=library) == 1
     assert main(["photo", "1", str(tmp_path / "nope.jpg")], library=library) == 1
+
+
+def test_photos_from_reels_is_off_by_default(library, capsys, monkeypatch):
+    monkeypatch.delenv("BURP_PHOTO_FROM_REEL", raising=False)
+    assert main(["photos-from-reels"], library=library) == 2
+    assert "BURP_PHOTO_FROM_REEL" in capsys.readouterr().err
+
+
+def test_photos_from_reels_queues_the_recipes_without_a_photo(
+    library, capsys, monkeypatch, tmp_path
+):
+    from burp.ingest import SourcePost
+    from burp.models import ImportedRecipe
+
+    monkeypatch.setenv("BURP_PHOTO_FROM_REEL", "true")
+    reel = tmp_path / "post.mp4"
+    reel.write_bytes(b"video")
+    fetched = []
+
+    def fetch(url, cookies_file=None):
+        fetched.append(url)
+        return SourcePost(url=url, video_path=reel)
+
+    monkeypatch.setattr("burp.cli.fetch_instagram", fetch)
+    url = "https://www.instagram.com/reel/abc/"
+    library.add(ImportedRecipe(recipe=valid_recipe(source_url=url), content_source="caption"))
+    library.add(ImportedRecipe(recipe=valid_recipe(), content_source="caption"))  # no link
+
+    assert main(["photos-from-reels", "--dry-run"], library=library) == 0
+    assert fetched == [] and "#1" in capsys.readouterr().out
+    assert main(["photos-from-reels"], library=library) == 0
+    assert fetched == [url]
+    assert [Path(p).name for p in library.jobs(1)[0].inputs] == ["reel.mp4"]
+    assert library.jobs(2) == []
+    # Queued already: a second run does not download it again.
+    main(["photos-from-reels"], library=library)
+    assert fetched == [url]

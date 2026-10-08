@@ -87,7 +87,7 @@ class Media:
 
     original: str
     halftone: str
-    source: str  # "frame" (from a video the user sent) or "screenshot"
+    source: str  # "frame" (a video the user sent), "screenshot", or "reel" (the post's video)
     confidence: float
     alt: str
     creator: str | None

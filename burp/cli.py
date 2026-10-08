@@ -69,6 +69,12 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     photo.add_argument("id", type=int)
     photo.add_argument("files", nargs="+", type=Path)
 
+    reels = commands.add_parser(
+        "photos-from-reels",
+        help="dish photos from the reels of saved recipes (needs BURP_PHOTO_FROM_REEL=true)",
+    )
+    reels.add_argument("--dry-run", action="store_true", help="list them, download nothing")
+
     worker = commands.add_parser("worker", help="run background jobs (dish photos)")
     worker.add_argument("--once", action="store_true", help="empty the queue, then stop")
 
@@ -151,6 +157,8 @@ def main(
             return backfill_titles(args, settings, library, client)
         case "photo":
             return attach_photo(args, settings, library)
+        case "photos-from-reels":
+            return photos_from_reels(args, settings, library)
         case "worker":
             return run_worker(args, settings, library, client)
         case "delete":
@@ -228,7 +236,10 @@ def run_import(
     else:
         saved, created = library.add(imported)
         print(f"salvata come #{saved.id}" if created else f"già in libreria (#{saved.id})")
-        if created and queue_photo(library, saved.id, post.photo_inputs, settings.media_dir):
+        reel = post.downloaded_video if settings.photo_from_reel else None
+        if created and queue_photo(
+            library, saved.id, post.photo_inputs, settings.media_dir, reel=reel
+        ):
             print("foto del piatto in coda: `burp worker` (o il bot) la prepara")
     return 0
 
@@ -245,6 +256,44 @@ def attach_photo(args: argparse.Namespace, settings: Settings, library: Library)
         print("nessuna immagine o video tra i file (jpg, png, webp, mp4, mov)", file=sys.stderr)
         return 1
     print(f"foto del piatto in coda per #{args.id}")
+    return 0
+
+
+def photos_from_reels(args: argparse.Namespace, settings: Settings, library: Library) -> int:
+    """Queue a photo from the reel of every saved recipe that has none (opt-in)."""
+    if not settings.photo_from_reel:
+        print(
+            "Spento: per usare i video dei reel metti BURP_PHOTO_FROM_REEL=true in .env "
+            "(solo per uso personale, vedi README).",
+            file=sys.stderr,
+        )
+        return 2
+    todo = [
+        saved
+        for saved in library.search()
+        if saved.recipe.source_url
+        and library.media(saved.id) is None
+        and not any(job.status in ("queued", "running") for job in library.jobs(saved.id))
+    ]
+    if not todo:
+        print("nessuna ricetta da reel senza foto")
+        return 0
+    for saved in todo:
+        if args.dry_run:
+            print(f"#{saved.id} {saved.recipe.title}")
+            continue
+        try:
+            post = fetch_instagram(
+                saved.recipe.source_url, cookies_file=settings.instagram_cookies_file
+            )
+        except RuntimeError as error:
+            print(f"#{saved.id}: non scaricato ({error})", file=sys.stderr)
+            continue
+        if post.downloaded_video is None:
+            print(f"#{saved.id}: nessun video nel post", file=sys.stderr)
+            continue
+        queue_photo(library, saved.id, [], settings.media_dir, reel=post.downloaded_video)
+        print(f"#{saved.id}: foto in coda")
     return 0
 
 

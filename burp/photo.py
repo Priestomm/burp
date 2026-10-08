@@ -1,8 +1,9 @@
 """The dish photo of a recipe, made in the background after the import.
 
-Only media the user hands over is used: screenshots, or a video they send (a screen
-recording, a clip). Never anything downloaded from Instagram, and never an AI-generated
-image: with no good picture, the recipe page shows paper and stickers only.
+By default only media the user hands over is used: screenshots, or a video they send (a
+screen recording, a clip). The reel downloaded with the link is used too only when the user
+turns on BURP_PHOTO_FROM_REEL, for personal use. Never an AI-generated image: with no good
+picture, the recipe page shows paper and stickers only.
 
 1. Collect candidates: the images, plus 10 frames of each video, most from its last third.
 2. A small vision model picks the one where the finished dish is most visible and sharp,
@@ -15,6 +16,7 @@ import io
 import logging
 import shutil
 import tempfile
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
@@ -90,14 +92,23 @@ def _small_jpeg_block(path: Path, longest: int = 768) -> dict:
     return {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": data}}
 
 
-def stash_inputs(recipe_id: int, paths: list[Path], media_dir: Path) -> list[str]:
-    """Copy what the user sent next to the recipe's media, for the background job. Returns
-    paths relative to `media_dir` (temporary files from the bot would be gone by then)."""
-    folder = media_dir / str(recipe_id) / "inputs"
+REEL = "reel"  # file name of a video downloaded from the post's link
+
+
+def stash_inputs(
+    recipe_id: int, paths: list[Path], media_dir: Path, reel: Path | None = None
+) -> list[str]:
+    """Copy the job's inputs next to the recipe's media (temporary files from the bot would be
+    gone by then), one folder per job. A video downloaded from the link is named `reel`, so
+    the photo can say where it comes from. Returns paths relative to `media_dir`."""
+    folder = media_dir / str(recipe_id) / "inputs" / uuid.uuid4().hex[:8]
     folder.mkdir(parents=True, exist_ok=True)
+    named = [(path, str(index)) for index, path in enumerate(paths)]
+    if reel is not None:
+        named.append((reel, REEL))
     stored = []
-    for index, path in enumerate(paths):
-        target = folder / f"{index}{path.suffix.lower()}"
+    for path, name in named:
+        target = folder / f"{name}{path.suffix.lower()}"
         shutil.copyfile(path, target)
         stored.append(str(target.relative_to(media_dir)))
     return stored
@@ -133,7 +144,8 @@ def make_photo(
                 except RuntimeError as error:  # unreadable video, or no PyAV
                     log.warning("photo: skipping video %s: %s", path.name, error)
                     continue
-                candidates += [(frame, "frame") for frame in frames]
+                source = REEL if path.stem == REEL else "frame"
+                candidates += [(frame, source) for frame in frames]
             elif path.suffix.lower() in IMAGE_SUFFIXES:
                 candidates.append((path, "screenshot"))
         if not candidates:

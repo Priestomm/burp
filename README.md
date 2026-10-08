@@ -125,7 +125,7 @@ Per consultare la libreria dal telefono (i comandi compaiono anche nel menu di T
 
 Dopo l'import, un job in background prepara la foto senza far aspettare la ricetta:
 
-1. prende **solo quello che mandi tu**: screenshot, o un video (registrazione dello schermo, clip). Il video scaricato da un link non diventa mai la foto: per Instagram ci limitiamo a leggere il post che condividi;
+1. prende quello che mandi tu: screenshot, o un video (registrazione dello schermo, clip). Il video del reel scaricato dal link si usa **solo se accendi `BURP_PHOTO_FROM_REEL=true`** (vedi sotto);
 2. dai video estrae 10 fotogrammi, 7 dall'ultimo terzo, dove di solito c'è il piatto finito;
 3. un modello veloce (`BURP_FAST_MODEL`) sceglie l'immagine dove il piatto finito si vede meglio, con una confidenza e un testo alternativo. Sotto 0,5 non usa niente;
 4. salva l'originale e una stampa a retino a due inchiostri (rosso a 15°, nero a 45°), con creator e link del post per l'attribuzione.
@@ -139,6 +139,17 @@ uv run burp worker                            # esegue i job (il bot li esegue g
 ```
 
 Dal bot: manda uno screenshot o un video insieme alla ricetta, oppure un'immagine con didascalia `/foto 3`. I bot Telegram non possono scaricare file oltre i 20 MB.
+
+### Foto dal video del reel (opzionale, solo uso personale)
+
+Con `BURP_PHOTO_FROM_REEL=true` nel `.env`, per gli import da link la foto si prende anche dal video del reel, già scaricato per la trascrizione, e la pagina la attribuisce al creator. È spenta di default per due motivi: estende uno scaricamento che i termini d'uso di Instagram vietano (raccolta automatica di contenuti), e il fotogramma è un'immagine del creator, quindi va bene in una libreria privata ma non in un'app pubblica, nemmeno con l'attribuzione. Se metti burp! online, lasciala spenta.
+
+```sh
+uv run burp photos-from-reels --dry-run   # quali ricette salvate non hanno ancora la foto
+uv run burp photos-from-reels             # riscarica i loro reel una volta e mette le foto in coda
+```
+
+Dopo ogni foto i file di partenza (video e screenshot copiati) vengono cancellati: restano solo il fotogramma scelto e la sua stampa.
 
 ## Web app
 

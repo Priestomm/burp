@@ -328,3 +328,38 @@ def test_foto_command_gives_a_photo_to_a_saved_recipe(library, tmp_path):
         message("/foto", photo="large"), api, ALLOWED, must_not_import, library, media_dir=tmp_path
     )
     assert "numero della ricetta" in sent[-1]["text"]
+
+
+def link_import(tmp_path):
+    """An import from a link, as fetch_instagram returns it: caption plus downloaded reel."""
+    from burp.ingest import SourcePost
+
+    reel = tmp_path / "post.mp4"
+    reel.write_bytes(b"video")
+
+    def fetch(url, cookies_file=None):
+        return SourcePost(url=url, caption="", video_path=reel)
+
+    return fetch
+
+
+def test_the_reel_becomes_a_photo_only_when_turned_on(library, tmp_path, monkeypatch):
+    monkeypatch.setattr("burp.bot.fetch_instagram", link_import(tmp_path))
+    sent: list[dict] = []
+    link = "https://www.instagram.com/reel/abc/"
+
+    def run_import(post):
+        return importer()(post.__class__(caption=(CAPTIONS / "completa.txt").read_text()))
+
+    media = tmp_path / "media"
+    handle_update(message(link), make_api(sent), ALLOWED, run_import, library, media_dir=media)
+    assert library.jobs(1) == [] and "Preparo la foto" not in sent[-1]["text"]
+
+    other = "https://www.instagram.com/reel/xyz/"
+    api = make_api(sent)
+    handle_update(
+        message(other), api, ALLOWED, run_import, library, media_dir=media, photo_from_reel=True
+    )
+    [job] = library.jobs(2)
+    assert [Path(p).name for p in job.inputs] == ["reel.mp4"]
+    assert "Preparo la foto" in sent[-1]["text"]

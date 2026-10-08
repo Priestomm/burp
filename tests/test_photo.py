@@ -113,8 +113,10 @@ def test_user_media_and_stash(tmp_path):
     files = [DISH, tmp_path / "clip.MOV", tmp_path / "notes.txt"]
     assert user_media(files) == files[:2]
     stored = stash_inputs(4, [DISH], tmp_path)
-    assert stored == ["4/inputs/0.jpg"]
+    assert len(stored) == 1 and stored[0].startswith("4/inputs/") and stored[0].endswith("/0.jpg")
     assert (tmp_path / stored[0]).read_bytes() == DISH.read_bytes()
+    # One folder per job: a second job does not overwrite the first one's files.
+    assert stash_inputs(4, [DISH], tmp_path)[0] != stored[0]
 
 
 def test_claude_picker_sends_numbered_small_images(tmp_path):
@@ -181,3 +183,48 @@ def test_media_goes_with_the_recipe(library, saved, tmp_path):
 def test_new_libraries_get_the_media_tables(tmp_path, catalog):
     with Library(tmp_path / "x.db", catalog) as lib:
         assert lib.conn.execute("PRAGMA user_version").fetchone()[0] == 2
+
+
+def test_inputs_are_deleted_after_the_job(library, saved, tmp_path):
+    inputs = stash_inputs(saved.id, [DISH], tmp_path)
+    library.enqueue(PHOTO, saved.id, inputs)
+    run_once(library, FakePicker(good()), tmp_path)
+    assert not (tmp_path / inputs[0]).exists()
+    assert not (tmp_path / inputs[0]).parent.exists()
+    assert (tmp_path / library.media(saved.id).halftone).exists()  # the photo stays
+
+
+def test_inputs_are_deleted_even_when_the_job_fails(library, saved, tmp_path):
+    class Broken:
+        def pick(self, images):
+            raise RuntimeError("API down")
+
+    inputs = stash_inputs(saved.id, [DISH], tmp_path)
+    library.enqueue(PHOTO, saved.id, inputs)
+    run_once(library, Broken(), tmp_path)
+    assert not (tmp_path / inputs[0]).exists()
+
+
+def test_a_downloaded_reel_is_stashed_as_reel(tmp_path):
+    clip = tmp_path / "post.mp4"
+    clip.write_bytes(b"video")
+    stored = stash_inputs(5, [DISH], tmp_path, reel=clip)
+    assert [Path(p).name for p in stored] == ["0.jpg", "reel.mp4"]
+
+
+def test_frames_of_the_reel_are_marked_as_reel(tmp_path):
+    av = pytest.importorskip("av")
+    import numpy as np
+
+    video = tmp_path / "reel.mp4"
+    with av.open(str(video), "w") as out:
+        stream = out.add_stream("mpeg4", rate=10)
+        stream.width = stream.height = 64
+        for i in range(30):
+            frame = np.full((64, 64, 3), i * 8, np.uint8)
+            for packet in stream.encode(av.VideoFrame.from_ndarray(frame, format="rgb24")):
+                out.mux(packet)
+        for packet in stream.encode():
+            out.mux(packet)
+    outcome = make_photo(3, [video], FakePicker(good(best=4)), tmp_path / "media")
+    assert outcome.media.source == "reel"

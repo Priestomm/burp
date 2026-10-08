@@ -174,6 +174,7 @@ def handle_update(
     library: Library,
     cookies_file: Path | None = None,
     media_dir: Path | None = None,
+    photo_from_reel: bool = False,
 ) -> None:
     message = parse_update(update)
     if message is None:
@@ -217,7 +218,12 @@ def handle_update(
     else:
         saved, created = library.add(imported)
         status = f"Salvata come #{saved.id}." if created else f"Già in libreria (#{saved.id})."
-        if created and media_dir and queue_photo(library, saved.id, post.photo_inputs, media_dir):
+        reel = post.downloaded_video if photo_from_reel else None
+        if (
+            created
+            and media_dir
+            and queue_photo(library, saved.id, post.photo_inputs, media_dir, reel=reel)
+        ):
             status += " Preparo la foto del piatto."
         reply = f"{summarize(imported)}\n\n{status}"
     api.send_message(message.chat_id, reply)
@@ -315,6 +321,7 @@ def main() -> int:
                 library,
                 settings.instagram_cookies_file,
                 settings.media_dir,
+                settings.photo_from_reel,
             ),
         )
     except KeyboardInterrupt:

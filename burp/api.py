@@ -30,7 +30,7 @@ class PhotoOut(BaseModel):
     src: str = Field(description="The halftone print, path under /api/media")
     original_src: str
     alt: str
-    source: str = Field(description="frame (from a video you sent) or screenshot")
+    source: str = Field(description="frame (a video you sent), screenshot, or reel (the post's)")
     creator: str | None
     source_url: str | None
 

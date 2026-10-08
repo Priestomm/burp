@@ -36,6 +36,11 @@ class SourcePost:
     video_from_user: bool = False
 
     @property
+    def downloaded_video(self) -> Path | None:
+        """The post's own video, downloaded with the link (not something the user sent)."""
+        return self.video_path if self.video_path and not self.video_from_user else None
+
+    @property
     def photo_inputs(self) -> list[Path]:
         """What the user handed over that can become the dish photo."""
         video = [self.video_path] if self.video_path and self.video_from_user else []

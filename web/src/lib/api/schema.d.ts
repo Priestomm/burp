@@ -241,7 +241,7 @@ export interface components {
             alt: string;
             /**
              * Source
-             * @description frame (from a video you sent) or screenshot
+             * @description frame (a video you sent), screenshot, or reel (the post's)
              */
             source: string;
             /** Creator */

@@ -49,3 +49,13 @@ def test_http_request_logs_are_silenced_because_urls_contain_the_bot_token():
 
     setup_logging()
     assert not logging.getLogger("httpx").isEnabledFor(logging.INFO)
+
+
+def test_photo_from_reel_is_off_unless_turned_on(monkeypatch):
+    monkeypatch.delenv("BURP_PHOTO_FROM_REEL", raising=False)
+    assert Settings.from_env().photo_from_reel is False
+    for value in ("true", "1", "sì"):
+        monkeypatch.setenv("BURP_PHOTO_FROM_REEL", value)
+        assert Settings.from_env().photo_from_reel is True
+    monkeypatch.setenv("BURP_PHOTO_FROM_REEL", "no")
+    assert Settings.from_env().photo_from_reel is False

@@ -43,6 +43,8 @@ class Settings:
     instagram_cookies_file: Path | None
     db_path: Path
     media_dir: Path
+    # Opt-in, personal use only: take the dish photo from the reel downloaded with the link.
+    photo_from_reel: bool
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -62,4 +64,6 @@ class Settings:
             instagram_cookies_file=Path(cookies) if cookies else None,
             db_path=Path(db_path) if db_path else DEFAULT_DB_PATH,
             media_dir=Path(media_dir) if media_dir else DEFAULT_MEDIA_DIR,
+            photo_from_reel=os.environ.get("BURP_PHOTO_FROM_REEL", "").strip().lower()
+            in ("1", "true", "yes", "si", "sì"),
         )
