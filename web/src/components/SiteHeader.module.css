@@ -14,8 +14,14 @@
   font-size: 19px;
 }
 
-.links a {
+.links a,
+.right a {
   text-decoration: none;
+}
+
+.right {
+  justify-self: end;
+  font-size: 19px;
 }
 
 .logo {

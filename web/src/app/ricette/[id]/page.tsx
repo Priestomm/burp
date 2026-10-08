@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { StickerSheet } from "@/components/library/StickerSheet";
-import { RecipeView } from "@/components/recipe/RecipeView";
+import { AdesiviRecipe } from "@/components/recipe/AdesiviRecipe";
 import { SiteHeader } from "@/components/SiteHeader";
 import { ApiError, type RecipeDetail, api } from "@/lib/api/server";
 
@@ -38,7 +38,7 @@ async function Recipe({ params }: { params: Promise<{ id: string }> }) {
       </p>
     );
   }
-  return <RecipeView recipe={recipe} />;
+  return <AdesiviRecipe recipe={recipe} />;
 }
 
 async function Sheet({ params }: { params: Promise<{ id: string }> }) {

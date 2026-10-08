@@ -11,7 +11,9 @@ export function SiteHeader() {
       <Link href="/" className={styles.logo} aria-label="burp!, torna alla libreria">
         <Logo />
       </Link>
-      <div className={styles.right} />
+      <nav className={`${styles.right} cond`} aria-label="Altro">
+        <Link href="/impostazioni">Impostazioni</Link>
+      </nav>
     </header>
   );
 }
