@@ -382,6 +382,24 @@
   },
   "components": {
     "schemas": {
+      "Attribution": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text",
+          "url"
+        ],
+        "title": "Attribution"
+      },
       "ByEyeIn": {
         "properties": {
           "indices": {
@@ -462,6 +480,30 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "IngredientImage": {
+        "properties": {
+          "src": {
+            "type": "string",
+            "title": "Src"
+          },
+          "alt": {
+            "type": "string",
+            "title": "Alt"
+          },
+          "clip": {
+            "type": "string",
+            "title": "Clip",
+            "default": "none"
+          }
+        },
+        "type": "object",
+        "required": [
+          "src",
+          "alt"
+        ],
+        "title": "IngredientImage",
+        "description": "A photocopied cut-out of the ingredient (Zine theme)."
       },
       "IngredientView": {
         "properties": {
@@ -552,6 +594,16 @@
               }
             ],
             "title": "Estimate Reason"
+          },
+          "image": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IngredientImage"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -659,6 +711,31 @@
         ],
         "title": "LibraryItem"
       },
+      "NativeWord": {
+        "properties": {
+          "lang": {
+            "type": "string",
+            "title": "Lang",
+            "description": "BCP 47 language tag, e.g. ja"
+          },
+          "word": {
+            "type": "string",
+            "title": "Word"
+          },
+          "meaning": {
+            "type": "string",
+            "title": "Meaning",
+            "description": "What it means, in Italian"
+          }
+        },
+        "type": "object",
+        "required": [
+          "lang",
+          "word",
+          "meaning"
+        ],
+        "title": "NativeWord"
+      },
       "PhotoOut": {
         "properties": {
           "src": {
@@ -669,6 +746,30 @@
           "original_src": {
             "type": "string",
             "title": "Original Src"
+          },
+          "photocopy_src": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photocopy Src",
+            "description": "Zine: photocopied, torn edge"
+          },
+          "cutout_src": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cutout Src",
+            "description": "Zine: the dish cut out"
           },
           "alt": {
             "type": "string",
@@ -889,6 +990,23 @@
             "type": "boolean",
             "title": "Fill Saved",
             "description": "An AI completion is stored, shown or hidden"
+          },
+          "native_word": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NativeWord"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "attributions": {
+            "items": {
+              "$ref": "#/components/schemas/Attribution"
+            },
+            "type": "array",
+            "title": "Attributions"
           },
           "still_missing": {
             "items": {

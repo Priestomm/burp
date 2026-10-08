@@ -4,21 +4,17 @@ import { Suspense } from "react";
 import { StickerSheet } from "@/components/library/StickerSheet";
 import { AdesiviRecipe } from "@/components/recipe/AdesiviRecipe";
 import { SiteHeader } from "@/components/SiteHeader";
-import { ApiError, type RecipeDetail, api } from "@/lib/api/server";
+import { ZineRecipe } from "@/components/zine/ZineRecipe";
+import { ApiError, type LibraryItem, type RecipeDetail, api } from "@/lib/api/server";
+import { getTheme } from "@/lib/theme";
 
 export const metadata: Metadata = { title: "Ricetta" };
 
 export default function RecipePage(props: PageProps<"/ricette/[id]">) {
   return (
-    <>
-      <SiteHeader />
-      <Suspense fallback={null}>
-        <Sheet params={props.params} />
-      </Suspense>
-      <Suspense fallback={<p style={{ padding: 24 }}>Apro la ricetta…</p>}>
-        <Recipe params={props.params} />
-      </Suspense>
-    </>
+    <Suspense fallback={<p style={{ padding: 24 }}>Apro la ricetta…</p>}>
+      <Recipe params={props.params} />
+    </Suspense>
   );
 }
 
@@ -27,8 +23,10 @@ async function Recipe({ params }: { params: Promise<{ id: string }> }) {
   const recipeId = Number(id);
   if (!Number.isInteger(recipeId)) notFound();
   let recipe: RecipeDetail;
+  let library: LibraryItem[];
+  let theme: Awaited<ReturnType<typeof getTheme>>;
   try {
-    recipe = await api.getRecipe(recipeId);
+    [recipe, library, theme] = await Promise.all([api.getRecipe(recipeId), api.listRecipes(), getTheme()]);
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) notFound();
     const message = error instanceof ApiError ? error.message : "Errore imprevisto.";
@@ -38,11 +36,12 @@ async function Recipe({ params }: { params: Promise<{ id: string }> }) {
       </p>
     );
   }
-  return <AdesiviRecipe recipe={recipe} />;
-}
-
-async function Sheet({ params }: { params: Promise<{ id: string }> }) {
-  const [{ id }, items] = await Promise.all([params, api.listRecipes().catch(() => null)]);
-  if (!items) return null; // the recipe below reports the API error
-  return <StickerSheet items={items} openId={Number(id)} />;
+  if (theme === "zine") return <ZineRecipe recipe={recipe} library={library} />;
+  return (
+    <>
+      <SiteHeader />
+      <StickerSheet items={library} openId={recipeId} />
+      <AdesiviRecipe recipe={recipe} />
+    </>
+  );
 }

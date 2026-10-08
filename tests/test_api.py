@@ -163,6 +163,8 @@ def test_the_photo_and_its_files(api, db, media_dir):
         "source": "frame",
         "creator": "giulia",
         "source_url": "https://x",
+        "photocopy_src": None,
+        "cutout_src": None,
     }
     response = api.get(photo["src"])
     assert response.status_code == 200 and response.content == b"png"

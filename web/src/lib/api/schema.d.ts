@@ -146,6 +146,13 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** Attribution */
+        Attribution: {
+            /** Text */
+            text: string;
+            /** Url */
+            url: string;
+        };
         /** ByEyeIn */
         ByEyeIn: {
             /** Indices */
@@ -176,6 +183,21 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /**
+         * IngredientImage
+         * @description A photocopied cut-out of the ingredient (Zine theme).
+         */
+        IngredientImage: {
+            /** Src */
+            src: string;
+            /** Alt */
+            alt: string;
+            /**
+             * Clip
+             * @default none
+             */
+            clip: string;
+        };
         /** IngredientView */
         IngredientView: {
             /** Index */
@@ -201,6 +223,7 @@ export interface components {
             edited: boolean;
             /** Estimate Reason */
             estimate_reason?: string | null;
+            image?: components["schemas"]["IngredientImage"] | null;
         };
         /** LibraryItem */
         LibraryItem: {
@@ -228,6 +251,21 @@ export interface components {
             to_clarify: number;
             cooked: components["schemas"]["CookedOut"];
         };
+        /** NativeWord */
+        NativeWord: {
+            /**
+             * Lang
+             * @description BCP 47 language tag, e.g. ja
+             */
+            lang: string;
+            /** Word */
+            word: string;
+            /**
+             * Meaning
+             * @description What it means, in Italian
+             */
+            meaning: string;
+        };
         /** PhotoOut */
         PhotoOut: {
             /**
@@ -237,6 +275,16 @@ export interface components {
             src: string;
             /** Original Src */
             original_src: string;
+            /**
+             * Photocopy Src
+             * @description Zine: photocopied, torn edge
+             */
+            photocopy_src?: string | null;
+            /**
+             * Cutout Src
+             * @description Zine: the dish cut out
+             */
+            cutout_src?: string | null;
             /** Alt */
             alt: string;
             /**
@@ -315,6 +363,9 @@ export interface components {
              * @description An AI completion is stored, shown or hidden
              */
             fill_saved: boolean;
+            native_word?: components["schemas"]["NativeWord"] | null;
+            /** Attributions */
+            attributions?: components["schemas"]["Attribution"][];
             /**
              * Still Missing
              * @description Ingredients whose quantity is still unknown

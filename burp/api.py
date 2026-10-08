@@ -29,10 +29,23 @@ class CookedOut(BaseModel):
 class PhotoOut(BaseModel):
     src: str = Field(description="The halftone print, path under /api/media")
     original_src: str
+    photocopy_src: str | None = Field(default=None, description="Zine: photocopied, torn edge")
+    cutout_src: str | None = Field(default=None, description="Zine: the dish cut out")
     alt: str
     source: str = Field(description="frame (a video you sent), screenshot, or reel (the post's)")
     creator: str | None
     source_url: str | None
+
+
+class NativeWord(BaseModel):
+    lang: str = Field(description="BCP 47 language tag, e.g. ja")
+    word: str
+    meaning: str = Field(description="What it means, in Italian")
+
+
+class Attribution(BaseModel):
+    text: str
+    url: str
 
 
 class LibraryItem(BaseModel):
@@ -68,6 +81,8 @@ class RecipeDetail(BaseModel):
     steps_note: str | None = Field(description="What the AI added to the steps")
     filled_by: str | None = Field(description="Model of 'Completa con l'AI', if shown")
     fill_saved: bool = Field(description="An AI completion is stored, shown or hidden")
+    native_word: NativeWord | None = None
+    attributions: list[Attribution] = Field(default_factory=list)
     still_missing: list[str] = Field(description="Ingredients whose quantity is still unknown")
     completeness: Completeness = Field(description="What the post did not say, as imported")
     content_source: ContentSource

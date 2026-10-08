@@ -8,8 +8,9 @@ export function isTheme(value: unknown): value is Theme {
   return typeof value === "string" && (THEMES as readonly string[]).includes(value);
 }
 
-/** The chosen look. A runtime read: call it inside a Suspense boundary. */
+/** The chosen look: the cookie, else BURP_THEME, else Adesivi. Call it inside Suspense. */
 export async function getTheme(): Promise<Theme> {
   const value = (await cookies()).get(THEME_COOKIE)?.value;
-  return isTheme(value) ? value : "adesivi";
+  if (isTheme(value)) return value;
+  return isTheme(process.env.BURP_THEME) ? process.env.BURP_THEME : "adesivi";
 }

@@ -12,6 +12,14 @@ from burp.units import BaseUnit, to_base
 QuantityStatus = Literal["given", "to_taste", "missing", "by_eye", "estimated"]
 
 
+class IngredientImage(BaseModel):
+    """A photocopied cut-out of the ingredient (Zine theme)."""
+
+    src: str
+    alt: str
+    clip: str = "none"  # CSS clip-path of the scissor cut
+
+
 class IngredientView(BaseModel):
     index: int
     name: str
@@ -23,6 +31,7 @@ class IngredientView(BaseModel):
     base_quantity: float | None
     edited: bool  # the quantity comes from the user, not from the post
     estimate_reason: str | None = None  # set when the quantity is the AI's guess
+    image: IngredientImage | None = None  # filled by the API from the image cache
 
 
 def ingredient_views(imported: ImportedRecipe) -> list[IngredientView]:
