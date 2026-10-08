@@ -4,6 +4,30 @@
  */
 
 export interface paths {
+    "/api/recipes/{recipe_id}/fill": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Fill Recipe
+         * @description "Completa con l'AI": estimate what the post did not say and rewrite the steps.
+         */
+        post: operations["fillRecipe"];
+        /**
+         * Clear Fill
+         * @description "Togli le stime": back to what the post says, plus the user's own edits.
+         */
+        delete: operations["clearFill"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/recipes": {
         parameters: {
             query?: never;
@@ -166,13 +190,15 @@ export interface components {
              * Status
              * @enum {string}
              */
-            status: "given" | "to_taste" | "missing" | "by_eye";
+            status: "given" | "to_taste" | "missing" | "by_eye" | "estimated";
             /** Base Unit */
             base_unit: ("g" | "ml" | "tsp" | "piece") | null;
             /** Base Quantity */
             base_quantity: number | null;
             /** Edited */
             edited: boolean;
+            /** Estimate Reason */
+            estimate_reason?: string | null;
         };
         /** LibraryItem */
         LibraryItem: {
@@ -246,15 +272,42 @@ export interface components {
             source_url: string | null;
             /** Author Handle */
             author_handle: string | null;
-            /** Servings */
+            /**
+             * Servings
+             * @description From the post, or the AI's estimate
+             */
             servings: number | null;
+            /** Servings Estimated */
+            servings_estimated: boolean;
             /** Time Minutes */
             time_minutes: number | null;
+            /** Time Estimated */
+            time_estimated: boolean;
             tags: components["schemas"]["Tags"];
             /** Ingredients */
             ingredients: components["schemas"]["IngredientView"][];
-            /** Steps */
+            /**
+             * Steps
+             * @description Rewritten by the AI when filled, else as in the post
+             */
             steps: string[];
+            /**
+             * Original Steps
+             * @description As in the post
+             */
+            original_steps: string[];
+            /** Steps Rewritten */
+            steps_rewritten: boolean;
+            /**
+             * Steps Note
+             * @description What the AI added to the steps
+             */
+            steps_note: string | null;
+            /**
+             * Filled By
+             * @description Model of 'Completa con l'AI', if used
+             */
+            filled_by: string | null;
             /**
              * Still Missing
              * @description Ingredients whose quantity is still unknown
@@ -312,6 +365,68 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    fillRecipe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipe_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipeDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clearFill: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipe_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipeDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     listRecipes: {
         parameters: {
             query?: {

@@ -1,7 +1,14 @@
 "use client";
 
 import { useId, useRef, useState, useTransition } from "react";
-import { acceptByEye, clearQuantity, markCooked, writeQuantity } from "@/app/ricette/[id]/actions";
+import {
+  acceptByEye,
+  clearAIFill,
+  clearQuantity,
+  fillWithAI,
+  markCooked,
+  writeQuantity,
+} from "@/app/ricette/[id]/actions";
 import { Mascot } from "@/components/stickers/Mascot";
 import { BurpStamp, CookedFace, DietStar, ServingsBadge } from "@/components/stickers/named";
 import type { IngredientView, RecipeDetail } from "@/lib/api/server";
@@ -15,6 +22,14 @@ const UNITS = ["g", "ml", "cucchiaio", "cucchiaino", "pezzo", "spicchio", "pizzi
 
 // Fixed zone: the page is rendered on the server and in the browser, and both must agree.
 const DAY = new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "long", timeZone: "Europe/Rome" });
+
+/** "claude-haiku-4-5" -> "Haiku 4.5" */
+function modelName(id: string): string {
+  const match = /^claude-([a-z]+)-(\d+)(?:-(\d+))?/.exec(id);
+  if (!match) return id;
+  const [, family, major, minor] = match;
+  return `${family[0].toUpperCase()}${family.slice(1)} ${minor ? `${major}.${minor}` : major}`;
+}
 
 /** Size step for the second title line, so long names still fit in the notch. */
 function notchSize(text: string): "l" | "m" | "s" | "xs" {
@@ -33,6 +48,8 @@ export function RecipeView({ recipe }: { recipe: RecipeDetail }) {
   const inputs = useRef(new Map<number, HTMLInputElement>());
   // Bumped on every "L'ho cucinata" so the stamp's slap animation plays again.
   const [slap, setSlap] = useState(0);
+  const [filling, setFilling] = useState(false);
+  const [asInReel, setAsInReel] = useState(false);
   const cooked = recipe.cooked;
   const labelId = useId();
 
@@ -62,6 +79,24 @@ export function RecipeView({ recipe }: { recipe: RecipeDetail }) {
       );
       setStatus(result.ok ? `Fatto: ${names.join(" e ")} a occhio.` : result.error);
       if (result.ok) setEditing(false);
+    });
+  }
+
+  function fill() {
+    setFilling(true);
+    startTransition(async () => {
+      const result = await fillWithAI(recipe.id);
+      setFilling(false);
+      setEditing(false);
+      setStatus(result.ok ? "Fatto: stime e passaggi riscritti, segnati come stima." : result.error);
+    });
+  }
+
+  function unfill() {
+    startTransition(async () => {
+      const result = await clearAIFill(recipe.id);
+      setAsInReel(false);
+      setStatus(result.ok ? "Stime tolte: è tornata com'era nel reel." : result.error);
     });
   }
 
@@ -95,16 +130,35 @@ export function RecipeView({ recipe }: { recipe: RecipeDetail }) {
     });
   }
 
+  const base = recipe.servings_estimated ? "stima" : "reel";
   const forWhom =
     servings === null
       ? "il reel non dice per quante persone"
       : people === servings
-        ? `per ${people}, come nel reel`
-        : `per ${people}, dal reel per ${servings}`;
+        ? `per ${people}, come ${recipe.servings_estimated ? "da stima" : "nel reel"}`
+        : `per ${people}, dal${base === "reel" ? " reel" : "la stima"} per ${servings}`;
+  const steps = asInReel ? recipe.original_steps : recipe.steps;
 
   return (
     <article className={styles.page} aria-busy={pending}>
       <h1 className="sr-only">{recipe.title}</h1>
+
+      <div className={styles.aibar}>
+        {recipe.filled_by ? (
+          <>
+            <span className={styles.aiNote}>
+              Stime e passaggi riscritti da {modelName(recipe.filled_by)}
+            </span>
+            <button type="button" className={`${styles.aiOff} cond`} onClick={unfill} disabled={pending}>
+              Togli le stime
+            </button>
+          </>
+        ) : (
+          <button type="button" className={`${styles.ai} cond`} onClick={fill} disabled={pending}>
+            {filling ? "Sto completando…" : "✦ Completa con l'AI"}
+          </button>
+        )}
+      </div>
 
       <div className={styles.hero}>
         <div className={styles.l1} aria-hidden="true">
@@ -160,6 +214,11 @@ export function RecipeView({ recipe }: { recipe: RecipeDetail }) {
                 <button type="button" className={`${styles.dark} cond`} onClick={byEye} disabled={pending}>
                   Sì, a occhio
                 </button>
+                {!recipe.filled_by && (
+                  <button type="button" className={`${styles.aiSmall} cond`} onClick={fill} disabled={pending}>
+                    {filling ? "Stimo…" : "Stimale con l'AI"}
+                  </button>
+                )}
               </div>
             </section>
           )}
@@ -259,6 +318,7 @@ export function RecipeView({ recipe }: { recipe: RecipeDetail }) {
                   </button>
                 ) : (
                   <span className={`${styles.q} serif`}>
+                    {item.status === "estimated" && <span className={`${styles.estTag} cond`}>stima</span>}
                     {line.value}
                     {line.note && <small>{line.note}</small>}
                     {item.edited && (
@@ -284,16 +344,34 @@ export function RecipeView({ recipe }: { recipe: RecipeDetail }) {
 
       <section className={styles.method} aria-labelledby="procedimento">
         <h2 className="cond" id="procedimento">
-          Procedimento
+          Procedimento{" "}
+          {recipe.time_minutes && (
+            <small className="serif">
+              {recipe.time_minutes} minuti{recipe.time_estimated ? ", stima" : ""}
+            </small>
+          )}
         </h2>
-        {recipe.steps.length > 0 ? (
+        {recipe.steps_rewritten && (
+          <div className={styles.stepsBar}>
+            <div className={styles.seg} role="group" aria-label="Versione del procedimento">
+              <button type="button" className="cond" aria-pressed={!asInReel} onClick={() => setAsInReel(false)}>
+                Riscritto
+              </button>
+              <button type="button" className="cond" aria-pressed={asInReel} onClick={() => setAsInReel(true)}>
+                Come nel reel
+              </button>
+            </div>
+            {!asInReel && recipe.steps_note && <p className={styles.stepsNote}>Nota dell&apos;AI: {recipe.steps_note}</p>}
+          </div>
+        )}
+        {steps.length > 0 ? (
           <ol className={styles.steps}>
-            {recipe.steps.map((step, i) => (
+            {steps.map((step, i) => (
               <li key={i}>{step}</li>
             ))}
           </ol>
         ) : (
-          <p>Il reel non spiega i passaggi.</p>
+          <p>Il reel non spiega i passaggi{recipe.filled_by ? "" : ": prova «Completa con l'AI»"}.</p>
         )}
       </section>
     </article>

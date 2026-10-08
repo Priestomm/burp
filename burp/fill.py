@@ -52,7 +52,9 @@ le quantità nei passaggi (sono già negli ingredienti e cambiano con le porzion
 aggiungere ingredienti che non sono nell'elenco. Puoi aggiungere passaggi ovvi che mancano \
 (scolare la pasta, preriscaldare il forno): in quel caso dillo in steps_note. Se il \
 procedimento manca del tutto, ricostruiscilo dagli ingredienti e dal titolo e dillo in \
-steps_note."""
+steps_note.
+- Rileggi prima di rispondere: italiano corretto e naturale, verbi giusti ("sala e pepa", \
+non "salsa e pepa")."""
 
 
 class Filler(Protocol):
@@ -103,6 +105,12 @@ class ClaudeFiller:
         return to_enrichment(imported, response.parsed_output, self.model)
 
 
+def _unit(unit: str | None) -> str | None:
+    """Models sometimes write the word "null" instead of leaving the unit empty."""
+    cleaned = (unit or "").strip()
+    return None if cleaned.lower() in ("", "null", "none", "nessuna", "-") else cleaned
+
+
 def to_enrichment(imported: ImportedRecipe, fill: Fill, model: str) -> Enrichment:
     """Keep only what fills a real gap: the model may not overwrite what the post says."""
     missing = {v.index for v in ingredient_views(imported) if v.status == "missing"}
@@ -112,7 +120,7 @@ def to_enrichment(imported: ImportedRecipe, fill: Fill, model: str) -> Enrichmen
         created_at=datetime.now(UTC).isoformat(timespec="seconds"),
         quantities={
             guess.index: Estimate(
-                quantity=guess.quantity, unit=guess.unit, reason=guess.reason[:80]
+                quantity=guess.quantity, unit=_unit(guess.unit), reason=guess.reason[:80]
             )
             for guess in fill.quantities
             if guess.index in missing

@@ -13,6 +13,7 @@ function item(over: Partial<IngredientView>): IngredientView {
     base_unit: null,
     base_quantity: null,
     edited: false,
+    estimate_reason: null,
     ...over,
   };
 }
@@ -109,6 +110,18 @@ describe("other kinds of quantity", () => {
 
   it("does not scale when the post does not say for how many", () => {
     expect(scale(tofu, 1, null)).toMatchObject({ value: "400 g", note: null });
+  });
+
+  it("scales estimates and says they are estimates", () => {
+    const spring = item({
+      status: "estimated",
+      quantity: 1,
+      base_unit: "piece",
+      base_quantity: 1,
+      estimate_reason: "guarnizione per 3",
+    });
+    expect(scale(spring, 3, 3)).toMatchObject({ value: "1", note: "stima: guarnizione per 3" });
+    expect(scale(spring, 6, 3).value).toBe("2");
   });
 
   it("marks quantities the user wrote", () => {

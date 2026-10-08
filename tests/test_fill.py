@@ -107,3 +107,9 @@ def test_guess_reason_is_short():
     guess = QuantityGuess(index=2, quantity=1, unit=None, reason="x" * 200)
     enrichment = to_enrichment(imported(), fill(quantities=[guess.model_dump()]), "m")
     assert len(enrichment.quantities[2].reason) == 80
+
+
+def test_the_word_null_as_a_unit_means_no_unit():
+    # Seen live with Haiku: {"unit": "null"} for 2 cipollotti.
+    guesses = fill(quantities=[{"index": 2, "quantity": 2, "unit": "null", "reason": "x"}])
+    assert to_enrichment(imported(), guesses, "m").quantities[2].unit is None

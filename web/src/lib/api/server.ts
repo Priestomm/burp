@@ -53,4 +53,6 @@ export const api = {
   markByEye: (id: number, indices: number[]) =>
     call<RecipeDetail>(`/api/recipes/${id}/by-eye`, { method: "POST", body: { indices } }),
   markCooked: (id: number) => call<Cooked>(`/api/recipes/${id}/cooked`, { method: "POST" }),
+  fillRecipe: (id: number) => call<RecipeDetail>(`/api/recipes/${id}/fill`, { method: "POST" }),
+  clearFill: (id: number) => call<RecipeDetail>(`/api/recipes/${id}/fill`, { method: "DELETE" }),
 };

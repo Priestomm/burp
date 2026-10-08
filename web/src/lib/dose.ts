@@ -98,8 +98,13 @@ export function scale(item: IngredientView, people: number, servings: number | n
 
   const factor = servings ? people / servings : 1;
   const scaled = factor !== 1;
-  const fromPost = item.edited ? "scritto da te" : `nel reel: ${asWritten(item)}`;
-  const note = scaled ? fromPost : item.edited ? fromPost : null;
+  const estimated = status === "estimated";
+  const fromPost = estimated
+    ? `stima: ${item.estimate_reason ?? "dell'AI"}`
+    : item.edited
+      ? "scritto da te"
+      : `nel reel: ${asWritten(item)}`;
+  const note = scaled || item.edited || estimated ? fromPost : null;
 
   if (item.base_unit === null || item.base_quantity === null) {
     // Not scalable as a measure ("lattina da 15 oz"): scale the count, keep the unit.

@@ -5,6 +5,84 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/api/recipes/{recipe_id}/fill": {
+      "post": {
+        "summary": "Fill Recipe",
+        "description": "\"Completa con l'AI\": estimate what the post did not say and rewrite the steps.",
+        "operationId": "fillRecipe",
+        "parameters": [
+          {
+            "name": "recipe_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Recipe Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecipeDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Clear Fill",
+        "description": "\"Togli le stime\": back to what the post says, plus the user's own edits.",
+        "operationId": "clearFill",
+        "parameters": [
+          {
+            "name": "recipe_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Recipe Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecipeDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/recipes": {
       "get": {
         "summary": "List Recipes",
@@ -417,7 +495,8 @@
               "given",
               "to_taste",
               "missing",
-              "by_eye"
+              "by_eye",
+              "estimated"
             ],
             "title": "Status"
           },
@@ -452,6 +531,17 @@
           "edited": {
             "type": "boolean",
             "title": "Edited"
+          },
+          "estimate_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimate Reason"
           }
         },
         "type": "object",
@@ -709,7 +799,12 @@
                 "type": "null"
               }
             ],
-            "title": "Servings"
+            "title": "Servings",
+            "description": "From the post, or the AI's estimate"
+          },
+          "servings_estimated": {
+            "type": "boolean",
+            "title": "Servings Estimated"
           },
           "time_minutes": {
             "anyOf": [
@@ -721,6 +816,10 @@
               }
             ],
             "title": "Time Minutes"
+          },
+          "time_estimated": {
+            "type": "boolean",
+            "title": "Time Estimated"
           },
           "tags": {
             "$ref": "#/components/schemas/Tags"
@@ -737,7 +836,44 @@
               "type": "string"
             },
             "type": "array",
-            "title": "Steps"
+            "title": "Steps",
+            "description": "Rewritten by the AI when filled, else as in the post"
+          },
+          "original_steps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Original Steps",
+            "description": "As in the post"
+          },
+          "steps_rewritten": {
+            "type": "boolean",
+            "title": "Steps Rewritten"
+          },
+          "steps_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Steps Note",
+            "description": "What the AI added to the steps"
+          },
+          "filled_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filled By",
+            "description": "Model of 'Completa con l'AI', if used"
           },
           "still_missing": {
             "items": {
@@ -790,10 +926,16 @@
           "source_url",
           "author_handle",
           "servings",
+          "servings_estimated",
           "time_minutes",
+          "time_estimated",
           "tags",
           "ingredients",
           "steps",
+          "original_steps",
+          "steps_rewritten",
+          "steps_note",
+          "filled_by",
           "still_missing",
           "completeness",
           "content_source",

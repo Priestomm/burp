@@ -54,3 +54,13 @@ export async function markCooked(
   refresh();
   return { ok: true, cooked };
 }
+
+/** "Completa con l'AI": estimate what the post did not say, rewrite the steps. */
+export async function fillWithAI(recipeId: number): Promise<ActionResult> {
+  return run(() => api.fillRecipe(recipeId));
+}
+
+/** "Togli le stime": back to the post and the user's own edits. */
+export async function clearAIFill(recipeId: number): Promise<ActionResult> {
+  return run(() => api.clearFill(recipeId));
+}
