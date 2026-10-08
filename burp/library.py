@@ -79,7 +79,9 @@ class Library:
         if str(path) != ":memory:":
             Path(path).parent.mkdir(parents=True, exist_ok=True)
         self.catalog = catalog
-        self.conn = sqlite3.connect(path)
+        # One connection per Library and one Library per API request, but FastAPI may open it
+        # in one worker thread and use it in another: allow that.
+        self.conn = sqlite3.connect(path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA foreign_keys = ON")
         self.conn.executescript(SCHEMA)

@@ -117,3 +117,35 @@ def test_the_schema_names_every_operation(api):
         "markByEye",
         "markCooked",
     }
+
+
+def test_parallel_requests_on_a_real_server(db):
+    # The web app asks for the library and a recipe at the same time, and uvicorn may open the
+    # SQLite connection in one worker thread and use it in another. TestClient does not show
+    # this, so the test runs a real server.
+    import socket
+    import threading
+    import time
+    from concurrent.futures import ThreadPoolExecutor
+
+    import httpx
+    import uvicorn
+
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        port = sock.getsockname()[1]
+    server = uvicorn.Server(uvicorn.Config(create_app(db), port=port, log_level="error"))
+    thread = threading.Thread(target=server.run, daemon=True)
+    thread.start()
+    try:
+        while not server.started:
+            time.sleep(0.01)
+        paths = ["/api/recipes", "/api/recipes/1"] * 20
+        with ThreadPoolExecutor(max_workers=16) as pool:
+            codes = list(
+                pool.map(lambda p: httpx.get(f"http://127.0.0.1:{port}{p}").status_code, paths)
+            )
+    finally:
+        server.should_exit = True
+        thread.join(timeout=5)
+    assert codes == [200] * len(paths)
