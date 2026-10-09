@@ -50,13 +50,13 @@ def test_fetch_rejects_non_instagram_links():
 
 
 def test_fetch_without_ytdlp_explains_the_fallback(monkeypatch):
-    monkeypatch.setattr(ingest.shutil, "which", lambda _: None)
+    monkeypatch.setattr(ingest.shutil, "which", lambda _, path=None: None)
     with pytest.raises(IngestionError, match="paste the caption"):
         fetch_instagram("https://www.instagram.com/p/abc/")
 
 
 def test_fetch_reads_caption_and_video_from_ytdlp_output(monkeypatch, tmp_path):
-    monkeypatch.setattr(ingest.shutil, "which", lambda _: "/usr/bin/yt-dlp")
+    monkeypatch.setattr(ingest.shutil, "which", lambda _, path=None: "/usr/bin/yt-dlp")
 
     def fake_run(command, **_):
         (tmp_path / "post.info.json").write_text(json.dumps({"description": "Dal tadka"}))
@@ -70,7 +70,7 @@ def test_fetch_reads_caption_and_video_from_ytdlp_output(monkeypatch, tmp_path):
 
 
 def test_fetch_failure_points_to_manual_fallback(monkeypatch, tmp_path):
-    monkeypatch.setattr(ingest.shutil, "which", lambda _: "/usr/bin/yt-dlp")
+    monkeypatch.setattr(ingest.shutil, "which", lambda _, path=None: "/usr/bin/yt-dlp")
     monkeypatch.setattr(
         ingest.subprocess,
         "run",
@@ -121,7 +121,7 @@ def test_manual_input_takes_the_author_from_a_prefixed_link():
 
 
 def test_fetch_reads_the_author_handle(monkeypatch, tmp_path):
-    monkeypatch.setattr(ingest.shutil, "which", lambda _: "/usr/bin/yt-dlp")
+    monkeypatch.setattr(ingest.shutil, "which", lambda _, path=None: "/usr/bin/yt-dlp")
 
     def fake_run(command, **_):
         info = {"description": "x", "channel": "cucina.di.anna", "uploader_id": "123456"}
@@ -146,7 +146,7 @@ def test_only_media_from_the_user_can_become_the_dish_photo(tmp_path, monkeypatc
     assert from_caption("ciao").photo_inputs == []
 
     # A reel downloaded from the link is transcribed, but never used as the photo.
-    monkeypatch.setattr(ingest.shutil, "which", lambda _: "/usr/bin/yt-dlp")
+    monkeypatch.setattr(ingest.shutil, "which", lambda _, path=None: "/usr/bin/yt-dlp")
 
     def fake_run(command, **_):
         (tmp_path / "post.mp4").write_bytes(b"video")
