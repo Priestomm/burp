@@ -2,21 +2,37 @@ import Form from "next/form";
 import { Suspense } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { StickerSheet } from "@/components/library/StickerSheet";
+import { Loading } from "@/components/Loading";
 import { ZineLibrary } from "@/components/zine/ZineLibrary";
 import { ApiError, type LibraryItem, api } from "@/lib/api/server";
-import { getTheme } from "@/lib/theme";
+import { type Theme, getTheme } from "@/lib/theme";
 import styles from "./page.module.css";
 
 export default function LibraryPage(props: PageProps<"/">) {
   return (
-    <Suspense fallback={<p style={{ padding: 24 }}>Carico la libreria…</p>}>
-      <Library searchParams={props.searchParams} />
+    <Suspense fallback={null}>
+      <Themed searchParams={props.searchParams} />
     </Suspense>
   );
 }
 
-async function Library({ searchParams }: { searchParams: PageProps<"/">["searchParams"] }) {
-  const [theme, params] = await Promise.all([getTheme(), searchParams]);
+async function Themed({ searchParams }: { searchParams: PageProps<"/">["searchParams"] }) {
+  const theme = await getTheme();
+  return (
+    <Suspense fallback={<Loading theme={theme} label="apro la libreria…" />}>
+      <Library searchParams={searchParams} theme={theme} />
+    </Suspense>
+  );
+}
+
+async function Library({
+  searchParams,
+  theme,
+}: {
+  searchParams: PageProps<"/">["searchParams"];
+  theme: Theme;
+}) {
+  const params = await searchParams;
   const query = typeof params.q === "string" ? params.q.trim() : "";
   const toCook = params["da-cucinare"] === "1";
   let items: LibraryItem[];

@@ -831,3 +831,29 @@ button:disabled {
   border-color: var(--marker);
   color: var(--z-paper);
 }
+
+/* Waiting for the library: the marker writes "burp!" over and over on a blank sheet. */
+@media (prefers-reduced-motion: no-preference) {
+  .again path {
+    animation: write 1.6s ease-in-out infinite alternate;
+    animation-delay: calc(var(--i) * 0.12s);
+  }
+}
+
+@keyframes write {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.waiting {
+  margin: 0;
+  padding: 0 16px 40px;
+  font-family: var(--wide);
+  font-size: clamp(32px, 6vw, 72px);
+  line-height: 0.9;
+  text-transform: lowercase;
+}
