@@ -9,6 +9,7 @@ import json
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -105,7 +106,8 @@ def fetch_instagram(
     """Fetch caption and video of one Instagram post with yt-dlp (optional `media` extra)."""
     if find_instagram_url(url) is None:
         raise IngestionError(f"not an Instagram post/reel link: {url}")
-    ytdlp = shutil.which("yt-dlp")
+    # Next to this Python too: `uv run` puts the venv on PATH, running .venv/bin/burp does not.
+    ytdlp = shutil.which("yt-dlp") or shutil.which("yt-dlp", path=str(Path(sys.executable).parent))
     if ytdlp is None:
         raise IngestionError(
             "yt-dlp is not installed. Run `uv sync --extra media`, or paste the caption "
