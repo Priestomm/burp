@@ -70,7 +70,8 @@ export function ZineRecipe({ recipe, library }: { recipe: RecipeDetail; library:
           )}
           <span className={`${styles.tape} ${styles.t1}`} aria-hidden="true" />
           <span className={`${styles.tape} ${styles.t2}`} aria-hidden="true" />
-          <Marker drawing={BURP} width={13} className={styles.scrawl} />
+          {/* Written over the dish; on a blank sheet it would hide the dish's name. */}
+          {recipe.photo && <Marker drawing={BURP} width={13} className={styles.scrawl} />}
           {recipe.photo?.cutout_src && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={recipe.photo.cutout_src} alt="" className={styles.lift} />

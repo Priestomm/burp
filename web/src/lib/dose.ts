@@ -4,7 +4,8 @@
  *
  * - grams and ml: above 100 rounded to 5, below to the unit;
  * - spoons are counted in teaspoons (1 cucchiaio = 3 cucchiaini): a multiple of 3 is shown in
- *   cucchiai, the rest in cucchiaini with ½ ⅓ ⅔, and under ⅕ of a teaspoon "un pizzico";
+ *   cucchiai, from two spoons up half spoons too, the rest in cucchiaini with ½ ⅓ ⅔, and under ⅕
+ *   of a teaspoon "un pizzico";
  * - liquids under 35 ml also get spoons (15 ml = 1 cucchiaio);
  * - q.b. stays q.b., and unknown quantities stay unknown until the user fills them in.
  */
@@ -50,6 +51,10 @@ export function spoons(tsp: number): string {
   if (tsp >= 3 && Math.abs(tbsp - Math.round(tbsp)) < 0.05) {
     const k = Math.round(tbsp);
     return `${k} ${plural(k, "cucchiaio", "cucchiai")}`;
+  }
+  // From two spoons up, half spoons too: "4 ½ cucchiai", not "13 ½ cucchiaini".
+  if (tbsp >= 2 && Math.abs(tbsp * 2 - Math.round(tbsp * 2)) < 0.1) {
+    return `${readable(Math.round(tbsp * 2) / 2)} cucchiai`;
   }
   const shown = readable(tsp);
   if (tsp < 1) return shown === "½" ? "½ cucchiaino" : `${shown} di cucchiaino`;

@@ -64,6 +64,9 @@ describe("spoons", () => {
     expect(spoons(3)).toBe("1 cucchiaio");
     expect(spoons(6)).toBe("2 cucchiai");
     expect(spoons(4.5)).toBe("4 ½ cucchiaini");
+    expect(spoons(13.5)).toBe("4 ½ cucchiai"); // from two spoons up, halves too
+    expect(spoons(7.5)).toBe("2 ½ cucchiai");
+    expect(spoons(5)).toBe("5 cucchiaini"); // not a half spoon: stays in teaspoons
     expect(spoons(1)).toBe("1 cucchiaino");
     expect(spoons(2)).toBe("2 cucchiaini");
   });
