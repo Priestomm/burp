@@ -310,18 +310,3 @@ def test_the_zine_dish_is_printed_in_colour(library, saved, tmp_path):
     # A photocopy has two colours, toner and paper; a colour print has hues.
     assert (np.ptp(opaque, axis=1) > 40).mean() > 0.2
     assert printed[0, :, 3].all() and not printed[-1, :, 3].all()  # torn bottom edge
-
-
-def test_the_dish_area_leaves_the_subtitles_out(tmp_path):
-    from burp.photo import Area, crop_to
-
-    frame = Image.new("RGB", (400, 800))
-    assert crop_to(frame, None).size == (400, 800)
-    assert crop_to(frame, Area(left=0.1, top=0.2, right=0.9, bottom=0.7)).size == (320, 400)
-    # Too small to be the dish: keep the whole frame rather than print a blur.
-    assert crop_to(frame, Area(left=0.4, top=0.4, right=0.6, bottom=0.6)).size == (400, 800)
-
-    pick = good().model_copy(update={"piatto": Area(left=0, top=0, right=1, bottom=0.5)})
-    make_photo(3, [DISH], FakePicker(pick), tmp_path)
-    with Image.open(DISH) as dish, Image.open(tmp_path / "3" / "original.jpg") as original:
-        assert original.size == (dish.width, round(dish.height / 2))

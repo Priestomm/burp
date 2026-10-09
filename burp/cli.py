@@ -93,7 +93,9 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     )
 
     zine = commands.add_parser("zine-images", help="queue the Zine prints of existing photos")
-    zine.add_argument("--all", action="store_true", help="also redo the ones already made")
+    zine.add_argument(
+        "--all", action="store_true", help="redo everything, ingredient pictures searched again"
+    )
 
     worker = commands.add_parser("worker", help="run background jobs (dish photos)")
     worker.add_argument("--once", action="store_true", help="empty the queue, then stop")
@@ -374,7 +376,11 @@ def _reel_photo_wanted(media: Media | None, redo: bool) -> bool:
 
 
 def queue_zine_images(args: argparse.Namespace, library: Library) -> int:
-    """Zine prints of existing photos, and the ingredient pictures of every recipe."""
+    """Zine prints of existing photos, and the ingredient pictures of every recipe. With --all,
+    everything again: the prints, and the ingredient pictures searched from scratch."""
+    if args.all:
+        forgotten = library.forget_ingredient_pictures()
+        print(f"{forgotten} immagini di ingredienti da cercare di nuovo")
     queued = 0
     for saved in library.search():
         media = library.media(saved.id)

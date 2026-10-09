@@ -6,8 +6,8 @@ turns on BURP_PHOTO_FROM_REEL, for personal use. Never an AI-generated image: wi
 picture, the recipe page shows a blank sheet of paper.
 
 1. Collect candidates: the images, plus 10 frames of each video, most from its last third.
-2. A small vision model picks the one where the finished dish is most visible and sharp,
-   with a confidence; below MIN_CONFIDENCE nothing is used.
+2. A small vision model picks the most beautiful picture of the finished dish, the one that
+   makes you want to cook it, with a confidence; below MIN_CONFIDENCE nothing is used.
 3. Save it (the Zine prints are made from it by the next job, see worker.py).
 """
 
@@ -25,7 +25,6 @@ import anthropic
 from PIL import Image
 from pydantic import BaseModel, ConfigDict, Field
 
-from burp.config import FAST_OUTPUT
 from burp.frames import extract_frames, tail_weighted
 from burp.library import Media
 
@@ -37,21 +36,6 @@ VIDEO_SUFFIXES = {".mp4", ".mov", ".m4v", ".webm"}
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp"}  # what Pillow opens without plugins
 
 
-class Area(BaseModel):
-    """A rectangle in fractions of the image: 0,0 top left, 1,1 bottom right."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    left: float = Field(ge=0, le=1)
-    top: float = Field(ge=0, le=1)
-    right: float = Field(ge=0, le=1)
-    bottom: float = Field(ge=0, le=1)
-
-
-# Smaller than this, a crop would be too blurry to print (and is more likely a mistake).
-MIN_CROP = 0.25
-
-
 class Pick(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -59,11 +43,6 @@ class Pick(BaseModel):
     confidence: float = Field(ge=0, le=1, description="Quanto sei sicuro che sia il piatto finito")
     alt: str = Field(description="Testo alternativo in italiano, max 120 caratteri")
     reason: str = Field(description="Perché questa, in breve")
-    piatto: Area | None = Field(
-        default=None,
-        description="Il riquadro del piatto nell'immagine scelta, lasciando fuori sottotitoli e "
-        "scritte sovrapposte; null se l'immagine non ha scritte",
-    )
 
 
 class FramePicker(Protocol):
@@ -71,17 +50,14 @@ class FramePicker(Protocol):
 
 
 PICK_PROMPT = """\
-Queste immagini vengono da un video di cucina o da screenshot di un post. Scegli quella in cui \
-il piatto finito si vede meglio: intero, nitido, ben illuminato, senza mani o testo sopra. \
-Sottotitoli e scritte sovrapposte al video contano come testo: preferisci sempre un'immagine \
-senza, anche se un po' meno bella. Se tutte ne hanno, scegli la migliore e indica in piatto il \
-riquadro che contiene il piatto lasciando fuori le scritte. \
-Deve essere una fotografia vera: scarta illustrazioni, disegni e grafiche. \
-Scarta anche ingredienti crudi, passaggi a metà, schermate di solo testo e volti. \
-Se nessuna mostra \
-il piatto finito, rispondi best = 0. confidence: quanto sei sicuro che la scelta mostri davvero \
-il piatto finito (0-1). alt: descrivi in italiano cosa si vede nell'immagine scelta, in una \
-frase, per chi non vede la foto."""
+Queste immagini vengono da un video di cucina o da screenshot di un post. Scegli la foto più \
+bella del piatto finito, quella che fa venire più voglia di cucinarlo: luce, colori, \
+composizione, il piatto invitante e a fuoco. Sottotitoli e scritte sovrapposte non contano. \
+Deve essere una fotografia vera del piatto pronto: scarta illustrazioni e grafiche, \
+ingredienti crudi, passaggi a metà e schermate di solo testo. Se nessuna mostra il piatto \
+finito, rispondi best = 0. confidence: quanto sei sicuro che la scelta mostri davvero il piatto \
+finito (0-1). alt: descrivi in italiano cosa si vede nell'immagine scelta, in una frase, per \
+chi non vede la foto."""
 
 
 class ClaudeFramePicker:
@@ -100,7 +76,8 @@ class ClaudeFramePicker:
             max_tokens=1000,
             messages=[{"role": "user", "content": content}],
             output_format=Pick,
-            output_config=FAST_OUTPUT,
+            # A matter of taste among ten pictures: worth a little more thought than low.
+            output_config={"effort": "medium"},
         )
         if response.parsed_output is None:
             raise RuntimeError(f"no frame choice ({response.stop_reason})")
@@ -143,19 +120,6 @@ def stash_inputs(
 def user_media(paths: list[Path]) -> list[Path]:
     """The files that can become the dish photo: images and videos."""
     return [p for p in paths if p.suffix.lower() in IMAGE_SUFFIXES | VIDEO_SUFFIXES]
-
-
-def crop_to(image: Image.Image, area: Area | None) -> Image.Image:
-    """The part of the frame with the dish and without the subtitles, if the picker gave one
-    that makes sense; else the whole frame."""
-    if area is None:
-        return image
-    left, right = sorted((area.left, area.right))
-    top, bottom = sorted((area.top, area.bottom))
-    if (right - left) * (bottom - top) < MIN_CROP:
-        return image
-    w, h = image.size
-    return image.crop((round(left * w), round(top * h), round(right * w), round(bottom * h)))
 
 
 @dataclass
@@ -202,7 +166,7 @@ def make_photo(
         folder = media_dir / str(recipe_id)
         folder.mkdir(parents=True, exist_ok=True)
         with Image.open(chosen) as image:
-            original = crop_to(image.convert("RGB"), choice.piatto)
+            original = image.convert("RGB")
         original.save(folder / "original.jpg", quality=90)
 
     count = len(candidates)

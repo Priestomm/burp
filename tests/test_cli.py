@@ -247,8 +247,12 @@ def test_zine_images_queues_prints_and_ingredient_pictures(library, capsys):
     assert [j.kind for j in library.jobs(1)] == ["zine", "ingredients"]
     assert [j.kind for j in library.jobs(2)] == ["ingredients"]  # already printed
     assert [j.kind for j in library.jobs(3)] == ["ingredients"]  # no photo
+    from burp.ingredient_images import IngredientPicture
+
+    library.save_ingredient_picture(IngredientPicture("tofu", found=True, path="ingredients/t.png"))
     assert main(["zine-images", "--all"], library=library) == 0
     assert [j.kind for j in library.jobs(2)] == ["ingredients", "zine", "ingredients"]
+    assert library.ingredient_picture("tofu") is None  # searched again, in colour
 
 
 def test_backfill_words_saves_only_real_cuisine_words(library, capsys):

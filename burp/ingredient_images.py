@@ -5,7 +5,7 @@
 2. Candidates come from Open Food Facts (packaged products only) and from Pexels.
    Unsplash is not used: its API requires hotlinking its URLs, and we change the pictures.
 3. The fast model picks the best of 3-5: one object, plain background, clear framing.
-4. The picture is cut out with scissors and photocopied (cutout.py), and kept with its
+4. The picture is cut out with scissors and printed in colour (cutout.py), and kept with its
    source, author, link and licence, which the page credits.
 
 One picture per normalized ingredient name, reused by every recipe. With no good picture the
@@ -31,13 +31,13 @@ from pydantic import BaseModel, ConfigDict, Field
 from burp.catalog import normalize_name
 from burp.config import FAST_OUTPUT
 from burp.cutout import BackgroundRemover, make_cutout
-from burp.photocopy import INGREDIENT, INK
 
 log = logging.getLogger(__name__)
 
 MIN_CONFIDENCE = 0.5
 MAX_CANDIDATES = 5
 MIN_INK = 0.08  # a cut-out that is almost all blank paper lost its object
+NOT_PAPER = 40  # how far from the usual colour (any channel) a pixel shows something
 OFF_LICENSE = "CC BY-SA 3.0"
 OFF_LICENSE_URL = "https://creativecommons.org/licenses/by-sa/3.0/"
 
@@ -251,13 +251,16 @@ def _jpeg_block(data: bytes, longest: int = 512) -> dict:
 
 
 def ink_share(cut: Image.Image) -> float:
-    """Share of the cut-out's paper covered by toner."""
-    pixels = np.asarray(cut.convert("RGBA"))
+    """Share of the cut-out that shows something: pixels well away from its most common
+    colour. A blank sheet, or a plain white box, is one colour (plus grain) all over."""
+    pixels = np.asarray(cut.convert("RGBA")).astype(int)
     paper = pixels[..., 3] > 0
     if not paper.any():
         return 0.0
-    ink = (pixels[..., :3] == INK).all(axis=-1) & paper
-    return float(ink.sum() / paper.sum())
+    rgb = pixels[..., :3]
+    usual = np.median(rgb[paper], axis=0)
+    far = np.abs(rgb - usual).max(axis=-1) > NOT_PAPER
+    return float((far & paper).sum() / paper.sum())
 
 
 def slug(name: str) -> str:
@@ -323,9 +326,7 @@ class Finder:
         chosen = usable[choice.best - 1]
         with Image.open(io.BytesIO(self.download(chosen.image_url))) as picture:
             try:
-                cut = make_cutout(
-                    picture, self.remover, width=300, exposure=INGREDIENT, seed=len(key)
-                )
+                cut = make_cutout(picture, self.remover, width=300, seed=len(key), colour=True)
             except ValueError:
                 return IngredientPicture(key, found=False)
         if ink_share(cut) < MIN_INK:

@@ -383,6 +383,11 @@ class Library:
             return None
         return IngredientPicture(**{**dict(row), "found": bool(row["found"])})
 
+    def forget_ingredient_pictures(self) -> int:
+        """Empty the cache, so every ingredient is searched again. Returns how many there were."""
+        with self.conn:
+            return self.conn.execute("DELETE FROM ingredient_images").rowcount
+
     def save_ingredient_picture(self, picture: IngredientPicture) -> None:
         with self.conn:
             self.conn.execute(

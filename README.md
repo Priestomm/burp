@@ -132,8 +132,8 @@ Dopo l'import, un job in background prepara la foto senza far aspettare la ricet
 
 1. prende quello che mandi tu: screenshot, o un video (registrazione dello schermo, clip). Il video del reel scaricato dal link si usa **solo se accendi `BURP_PHOTO_FROM_REEL=true`** (vedi sotto);
 2. dai video estrae 10 fotogrammi, 7 dall'ultimo terzo, dove di solito c'è il piatto finito;
-3. un modello veloce (`BURP_FAST_MODEL`) sceglie l'immagine dove il piatto finito si vede meglio, con una confidenza e un testo alternativo. Sotto 0,5 non usa niente;
-4. salva il fotogramma, con creator e link del post per l'attribuzione. Se i sottotitoli del reel coprono ogni fotogramma, il modello indica il riquadro del piatto e la foto si ritaglia lì;
+3. un modello veloce (`BURP_FAST_MODEL`) sceglie la foto più bella del piatto finito, quella che fa venire voglia di cucinarlo, con una confidenza e un testo alternativo. Sotto 0,5 non usa niente;
+4. salva il fotogramma, con creator e link del post per l'attribuzione;
 5. un secondo job ne fa la stampa per la pagina (vedi sotto).
 
 Senza una foto buona la pagina mostra un foglio bianco: **nessuna immagine generata**.
@@ -160,19 +160,20 @@ Dopo ogni foto i file di partenza (video e screenshot copiati) vengono cancellat
 
 ## La pagina: una fanzine
 
-burp! ha un solo aspetto, lo **Zine**: una pagina di fanzine su carta gialla. Il piatto è stampato **a colori** (un po' più caldo e saturo, con una grana di carta e il bordo strappato), perché deve far venire voglia di cucinarlo, con il ritaglio a forbice del piatto che ne esce; gli ingredienti come ritagli fotocopiati a forbice, la tabella delle dosi per 1, 2, 3… persone, e le note a pennarello blu generate dai dati: «io!» sulla colonna dell'1, un anello con «quanti?» attorno alle quantità mancanti, un'ondulata sotto tempi e temperature. «L'ho cucinata» scrive da sé «burp!» con la data.
+burp! ha un solo aspetto, lo **Zine**: una pagina di fanzine su carta gialla. Il piatto è stampato **a colori** (un po' più caldo e saturo, con una grana di carta e il bordo strappato), perché deve far venire voglia di cucinarlo, con il ritaglio a forbice del piatto che ne esce; gli ingredienti anche loro a colori, ritagliati a forbice, la tabella delle dosi per 1, 2, 3… persone, e le note a pennarello blu generate dai dati: «io!» sulla colonna dell'1, un anello con «quanti?» attorno alle quantità mancanti, un'ondulata sotto tempi e temperature. «L'ho cucinata» scrive da sé «burp!» con la data.
 
 Il **pennarello** (pulsante in cima alla ricetta) disegna a mano libera sulla pagina, con il mouse, il dito o la penna. Ogni tratto si aggancia all'elemento che ha sotto il suo centro (la foto, il titolo, un ingrediente, un passaggio, la tabella) e si salva in millesimi della larghezza di quell'elemento: sul telefono, dove il testo va a capo in un altro modo, il cerchio attorno al tofu resta attorno al tofu. Il disegno si salva intero dopo ogni tratto (`PUT /api/recipes/{id}/drawing`), così «annulla» è solo un tratto in meno; Esc o «fatto» per uscire.
 
 Le immagini della pagina si preparano in background, come la foto:
 
 - **Piatto**: la stampa a colori e il ritaglio partono dal fotogramma scelto. Il ritaglio usa rembg, in locale (extra `cutout`).
-- **Ingredienti**: il modello veloce scrive le ricerche (una chiamata per ricetta), i prodotti confezionati si cercano su **Open Food Facts** (foto CC BY-SA 3.0: le nostre fotocopie ne sono derivate e restano CC BY-SA), gli altri su **Pexels** (serve `PEXELS_API_KEY`). Il modello sceglie la foto migliore tra 3-5, che viene scontornata, ritagliata a forbice e fotocopiata. Unsplash non si usa: la sua API obbliga a mostrare le immagini dai suoi indirizzi, senza modificarle.
+- **Ingredienti**: il modello veloce scrive le ricerche (una chiamata per ricetta), i prodotti confezionati si cercano su **Open Food Facts** (foto CC BY-SA 3.0: i nostri ritagli ne sono derivati e restano CC BY-SA), gli altri su **Pexels** (serve `PEXELS_API_KEY`). Il modello sceglie la foto migliore tra 3-5, che viene scontornata, ritagliata a forbice e stampata a colori. Unsplash non si usa: la sua API obbliga a mostrare le immagini dai suoi indirizzi, senza modificarle.
 - Ogni ingrediente si cerca **una volta sola** e si riusa in tutte le ricette. Se non c'è una foto buona resta un biglietto di carta con il nome: mai immagini generate.
 - Le attribuzioni (fotografo e Pexels, prodotto e licenza Open Food Facts) sono in fondo alla pagina.
 
 ```sh
 uv run burp zine-images          # stampe delle foto esistenti e ingredienti di tutte le ricette
+uv run burp zine-images --all    # rifà tutto, e cerca di nuovo anche le immagini degli ingredienti
 uv run burp worker --once        # le prepara (il bot lo fa da solo)
 uv run burp backfill-words       # la parola nella lingua della cucina, per le ricette già salvate
 ```
