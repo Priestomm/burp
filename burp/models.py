@@ -21,7 +21,8 @@ Course = Literal[
     "bevanda",
     "salsa",
 ]
-ContentSource = Literal["caption", "transcript", "frames"]
+# "chat": written with Claude and saved through the MCP server, no post behind it.
+ContentSource = Literal["caption", "transcript", "frames", "chat"]
 
 
 class RecipeIngredient(BaseModel):

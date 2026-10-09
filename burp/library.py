@@ -108,6 +108,23 @@ MIGRATIONS = [
     """
     ALTER TABLE media DROP COLUMN halftone;
     """,
+    # The MCP server's sign-in (mcp_server.py): the Claude apps registered, and their tokens,
+    # kept as hashes so that a copy of the database does not let anyone in.
+    """
+    CREATE TABLE IF NOT EXISTS mcp_clients (
+        client_id TEXT PRIMARY KEY,
+        info TEXT NOT NULL,
+        created_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS mcp_tokens (
+        token_hash TEXT PRIMARY KEY,
+        kind TEXT NOT NULL,
+        client_id TEXT NOT NULL REFERENCES mcp_clients(client_id) ON DELETE CASCADE,
+        scopes TEXT NOT NULL,
+        expires_at INTEGER,
+        resource TEXT
+    );
+    """,
 ]
 
 

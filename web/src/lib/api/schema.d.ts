@@ -406,7 +406,7 @@ export interface components {
              * Content Source
              * @enum {string}
              */
-            content_source: "caption" | "transcript" | "frames";
+            content_source: "caption" | "transcript" | "frames" | "chat";
             cooked: components["schemas"]["CookedOut"];
             photo: components["schemas"]["PhotoOut"] | null;
             /**

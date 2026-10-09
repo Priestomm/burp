@@ -11,7 +11,7 @@ from pathlib import Path
 
 from burp.config import ROOT_DIR, Settings
 
-COLOURS = {"api": "\033[36m", "bot": "\033[35m", "web": "\033[33m"}
+COLOURS = {"api": "\033[36m", "bot": "\033[35m", "web": "\033[33m", "mcp": "\033[32m"}
 RESET = "\033[0m"
 
 
@@ -37,6 +37,8 @@ def services(
             skipped.append("bot: TELEGRAM_BOT_TOKEN o TELEGRAM_ALLOWED_USER_IDS mancanti nel .env")
     if web:
         chosen.append(Service("web", ["pnpm", "dev"], ROOT_DIR / "web", port=3000))
+    if settings.mcp_url and settings.mcp_password:  # for Claude: see README
+        chosen.append(Service("mcp", [*python, "mcp"], ROOT_DIR, port=8001))
     return chosen, skipped
 
 

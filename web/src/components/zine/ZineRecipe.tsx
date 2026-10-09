@@ -32,6 +32,7 @@ export function ZineRecipe({ recipe, library }: { recipe: RecipeDetail; library:
     state;
   const { cooked, missing, notice, servings, steps, byEye, fill, unfill, cook, save, undo } = state;
   const sheet = useRef<HTMLElement>(null);
+  const fromChat = recipe.content_source === "chat";
   const drawing = useDrawing(recipe.id, recipe.drawing ?? [], sheet);
   // The rewritten steps and the reel's are different texts: strokes on one stay off the other.
   const stepAnchor = recipe.steps_rewritten && !asInReel ? "rewrite" : "step";
@@ -110,7 +111,7 @@ export function ZineRecipe({ recipe, library }: { recipe: RecipeDetail; library:
       </div>
 
       <div className={styles.tagline}>
-        <span>visto su instagram</span>
+        <span>{fromChat ? "scritta con claude" : "visto su instagram"}</span>
         <span>fatto in cucina</span>
       </div>
 
@@ -159,7 +160,8 @@ export function ZineRecipe({ recipe, library }: { recipe: RecipeDetail; library:
             <div>
               <p className={styles.no}>
                 ricetta N° {recipe.id}
-                {position >= 0 ? ` di ${library.length}` : ""}, salvata da un reel
+                {position >= 0 ? ` di ${library.length}` : ""}
+                {fromChat ? ", scritta con Claude" : ", salvata da un reel"}
                 {recipe.author_handle ? ` di @${recipe.author_handle}` : ""}
               </p>
               <h1 data-size={titleSize(title)}>{title}</h1>

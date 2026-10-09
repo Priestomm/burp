@@ -180,6 +180,19 @@ uv run burp backfill-words       # la parola nella lingua della cucina, per le r
 
 La **parola in verticale** (per esempio もちもち, «consistenza gommosa») la scrive il modello durante l'import, solo se la cucina d'origine usa un alfabeto non latino e se è sicuro della parola.
 
+## Claude sul telefono (MCP)
+
+Da una chat con Claude, anche nell'app del telefono, puoi dire «salvala in burp!» e la ricetta che ti ha scritto finisce nella libreria. burp! è un server [MCP](https://modelcontextprotocol.io) con tre strumenti: `salva_ricetta` (Claude passa la ricetta già strutturata, con lo stesso schema e le stesse regole degli import: nessuna chiamata a pagamento), `cerca_ricette` e `leggi_ricetta`. Nessuno strumento cancella. Le ricette salvate così dicono «scritta con Claude» e non hanno foto.
+
+Claude si collega dai server di Anthropic, non dal telefono, quindi burp! deve essere raggiungibile da internet con un indirizzo HTTPS stabile, e deve chiedere chi è: il connettore si autentica con OAuth, e burp! fa da server OAuth per una persona sola. Quando aggiungi il connettore, Claude apre una pagina di burp! che chiede `BURP_MCP_PASSWORD`; da lì in poi ha un token (salvato come hash nel database, rinnovato da solo, valido circa sei mesi). Tre password sbagliate chiudono il tentativo, e ognuna aspetta un secondo.
+
+1. Scegli una password lunga (per esempio quattro parole a caso) e mettila in `.env` come `BURP_MCP_PASSWORD`.
+2. Apri un tunnel verso la porta 8001. Con [Tailscale Funnel](https://tailscale.com/kb/1223/funnel) (gratis, indirizzo fisso tipo `https://mac.tuo-tailnet.ts.net`): installa Tailscale sul Mac, accedi, poi `tailscale funnel --bg 8001`. In alternativa ngrok con il suo dominio statico gratuito: `ngrok http --url=nome.ngrok-free.app 8001`.
+3. Metti l'indirizzo pubblico in `.env` come `BURP_MCP_URL` (senza `/mcp` in fondo) e riavvia `uv run burp dev`: parte anche `[mcp]`. Da solo: `uv run burp mcp`.
+4. Su claude.ai, **Customize → Connectors → Add custom connector**: URL `https://…/mcp`, autenticazione con accesso (non «No sign-in»), client OAuth «Register automatically». Poi **Connect**, e nella pagina gialla di burp! la password. Il connettore aggiunto dal web si usa anche nelle app.
+
+Il Mac deve essere acceso, con `burp dev` e il tunnel attivi: con il Mac spento Claude dice che il connettore non risponde.
+
 ## Web app
 
 La dashboard è in `web/` (Next.js 16, React 19, TypeScript): vedi [web/README.md](web/README.md).

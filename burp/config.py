@@ -52,6 +52,10 @@ class Settings:
     photo_from_reel: bool
     pexels_api_key: str | None
     contact_email: str | None  # sent in the User-Agent to Open Food Facts
+    # The MCP server for Claude (see mcp_server.py): its public HTTPS address and the password
+    # asked once when Claude connects. Both unset: no MCP server.
+    mcp_url: str | None = None
+    mcp_password: str | None = None
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -73,6 +77,8 @@ class Settings:
             media_dir=Path(media_dir) if media_dir else DEFAULT_MEDIA_DIR,
             pexels_api_key=os.environ.get("PEXELS_API_KEY") or None,
             contact_email=os.environ.get("BURP_CONTACT_EMAIL") or None,
+            mcp_url=(os.environ.get("BURP_MCP_URL") or "").rstrip("/") or None,
+            mcp_password=os.environ.get("BURP_MCP_PASSWORD") or None,
             photo_from_reel=os.environ.get("BURP_PHOTO_FROM_REEL", "").strip().lower()
             in ("1", "true", "yes", "si", "sì"),
         )

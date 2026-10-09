@@ -102,6 +102,9 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
 
     commands.add_parser("bot", help="run the Telegram bot (it also runs the jobs)")
 
+    mcp = commands.add_parser("mcp", help="run the MCP server for Claude (see README)")
+    mcp.add_argument("--port", type=int, default=8001)
+
     dev = commands.add_parser("dev", help="run the API, the bot and the web app together")
     dev.add_argument("--no-bot", action="store_true", help="leave the Telegram bot off")
     dev.add_argument("--no-web", action="store_true", help="leave the web app off")
@@ -159,6 +162,21 @@ def main(
         from burp.bot import main as bot_main
 
         return bot_main()
+    if args.command == "mcp":
+        if not (settings.mcp_url and settings.mcp_password):
+            print(
+                "Servono BURP_MCP_URL (l'indirizzo pubblico HTTPS) e BURP_MCP_PASSWORD nel .env "
+                "(vedi README, «Claude sul telefono»).",
+                file=sys.stderr,
+            )
+            return 2
+        import uvicorn
+
+        from burp.mcp_server import create_app as create_mcp_app
+
+        app = create_mcp_app(settings.db_path, settings.mcp_url, settings.mcp_password)
+        uvicorn.run(app, host="127.0.0.1", port=args.port)
+        return 0
     if args.command == "dev":
         from burp import dev
 
