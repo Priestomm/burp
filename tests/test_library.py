@@ -195,3 +195,20 @@ def test_a_library_from_before_the_title_split_is_upgraded(tmp_path, catalog):
         assert lib.cooked(saved.id).count == 0  # the new table exists
     with Library(path, catalog) as lib:  # opening again changes nothing
         assert lib.search()[0].recipe.completeness.missing == ["quantità di tuorli"]
+
+
+def test_a_drawing_goes_with_its_recipe(library):
+    from burp.models import Stroke
+
+    saved, _ = library.add(imported())
+    strokes = [Stroke(anchor="step-0", d="M1 2L3 4")]
+    assert library.drawing(saved.id) == []
+    library.set_drawing(saved.id, strokes)
+    assert library.drawing(saved.id) == strokes
+    library.set_drawing(saved.id, [])
+    assert library.drawing(saved.id) == []
+    library.set_drawing(saved.id, strokes)
+    library.delete(saved.id)
+    assert library.drawing(saved.id) == []  # ON DELETE CASCADE
+    with pytest.raises(KeyError):
+        library.set_drawing(99, strokes)

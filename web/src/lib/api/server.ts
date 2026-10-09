@@ -8,6 +8,7 @@ export type LibraryItem = components["schemas"]["LibraryItem"];
 export type RecipeDetail = components["schemas"]["RecipeDetail"];
 export type IngredientView = components["schemas"]["IngredientView"];
 export type Cooked = components["schemas"]["CookedOut"];
+export type Stroke = components["schemas"]["Stroke"];
 
 const BASE = process.env.BURP_API_URL ?? "http://127.0.0.1:8000";
 
@@ -58,4 +59,8 @@ export const api = {
       method: "POST",
     }),
   clearFill: (id: number) => call<RecipeDetail>(`/api/recipes/${id}/fill`, { method: "DELETE" }),
+  setDrawing: (id: number, strokes: Stroke[]) =>
+    call<{ strokes: Stroke[] }>(`/api/recipes/${id}/drawing`, { method: "PUT", body: { strokes } }),
+  clearDrawing: (id: number) =>
+    call<{ strokes: Stroke[] }>(`/api/recipes/${id}/drawing`, { method: "DELETE" }),
 };

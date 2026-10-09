@@ -1,7 +1,7 @@
 "use server";
 
 import { refresh } from "next/cache";
-import { ApiError, type Cooked, api } from "@/lib/api/server";
+import { ApiError, type Cooked, type Stroke, api } from "@/lib/api/server";
 
 // Local-only for now (see burp/api.py): when the app goes online, every action must check
 // who is calling before touching the library.
@@ -64,4 +64,14 @@ export async function fillWithAI(recipeId: number, regenerate = false): Promise<
 /** "Togli le stime": back to the post and the user's own edits. */
 export async function clearAIFill(recipeId: number): Promise<ActionResult> {
   return run(() => api.clearFill(recipeId));
+}
+
+/** The marker: save the whole drawing. No refresh: the page already shows what was drawn. */
+export async function saveDrawing(recipeId: number, strokes: Stroke[]): Promise<ActionResult> {
+  try {
+    await (strokes.length ? api.setDrawing(recipeId, strokes) : api.clearDrawing(recipeId));
+  } catch (error) {
+    return { ok: false, error: error instanceof ApiError ? error.message : "Errore imprevisto." };
+  }
+  return { ok: true };
 }

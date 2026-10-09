@@ -16,7 +16,7 @@ from burp.catalog import SynonymIndex, normalize_name
 from burp.config import DEFAULT_DB_PATH
 from burp.ingest import source_key
 from burp.ingredient_images import IngredientPicture
-from burp.models import Enrichment, ImportedRecipe, IngredientEdit, Recipe
+from burp.models import Enrichment, ImportedRecipe, IngredientEdit, Recipe, Stroke
 from burp.structure import deduplicate_missing
 
 # Diet tags can be searched with their Italian names too.
@@ -95,6 +95,13 @@ MIGRATIONS = [
         page_url TEXT,
         license TEXT,
         created_at TEXT NOT NULL
+    );
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS drawings (
+        recipe_id INTEGER PRIMARY KEY REFERENCES recipes(id) ON DELETE CASCADE,
+        strokes TEXT NOT NULL,
+        updated_at TEXT NOT NULL
     );
     """,
 ]
@@ -392,6 +399,28 @@ class Library:
                     _now(),
                 ),
             )
+
+    def drawing(self, recipe_id: int) -> list[Stroke]:
+        """The marker strokes drawn on a recipe, oldest first; empty if none."""
+        row = self.conn.execute(
+            "SELECT strokes FROM drawings WHERE recipe_id = ?", (recipe_id,)
+        ).fetchone()
+        return [Stroke.model_validate(item) for item in json.loads(row["strokes"])] if row else []
+
+    def set_drawing(self, recipe_id: int, strokes: list[Stroke]) -> list[Stroke]:
+        """Replace the whole drawing (undo is the browser sending one stroke less)."""
+        self._require(recipe_id)
+        with self.conn:
+            if not strokes:
+                self.conn.execute("DELETE FROM drawings WHERE recipe_id = ?", (recipe_id,))
+            else:
+                data = json.dumps([stroke.model_dump() for stroke in strokes])
+                self.conn.execute(
+                    "INSERT OR REPLACE INTO drawings (recipe_id, strokes, updated_at)"
+                    " VALUES (?, ?, ?)",
+                    (recipe_id, data, _now()),
+                )
+        return strokes
 
     def media(self, recipe_id: int) -> Media | None:
         row = self.conn.execute(

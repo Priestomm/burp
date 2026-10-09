@@ -114,6 +114,24 @@ class IngredientEdit(BaseModel):
     by_eye: bool = False  # "Sì, a occhio": the user accepts not knowing the quantity
 
 
+# "M12 340L15 338L20 331": an SVG path of straight segments, in thousandths of the width of
+# the element it was drawn on (so it follows that element when the text wraps differently).
+STROKE_PATH = r"^M-?\d{1,5} -?\d{1,5}(L-?\d{1,5} -?\d{1,5})*$"
+
+
+class Stroke(BaseModel):
+    """One line drawn by hand with the marker on a recipe."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    anchor: str = Field(
+        pattern=r"^[a-z]+(-\d{1,3})?$",
+        max_length=24,
+        description="The element it was drawn on: photo, title, ing-3, step-0, sheet...",
+    )
+    d: str = Field(pattern=STROKE_PATH, max_length=20_000, description="SVG path, see above")
+
+
 class Estimate(BaseModel):
     """A quantity the AI guessed because the post did not say it."""
 

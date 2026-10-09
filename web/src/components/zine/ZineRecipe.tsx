@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRef } from "react";
 import { ARROW, BURP, DIGITS, IO, LOOP, QUANTI, RING, SQUIGGLE } from "@/components/marker/paths";
 import { Marker, digitsDrawing } from "@/components/marker/Marker";
 import { modelName, useRecipe } from "@/components/recipe/useRecipe";
@@ -9,6 +10,7 @@ import { markTimes } from "@/lib/annotate";
 import { scale } from "@/lib/dose";
 import { doseTable } from "@/lib/doseTable";
 import { coursePlural, subtitle } from "@/lib/zineText";
+import { DrawingLayer, useDrawing } from "./Drawing";
 import { Hand } from "./Hand";
 import styles from "./zine.module.css";
 
@@ -29,6 +31,10 @@ export function ZineRecipe({ recipe, library }: { recipe: RecipeDetail; library:
   const { editing, startEditing, status, pending, inputs, slap, filling, asInReel, setAsInReel } =
     state;
   const { cooked, missing, notice, servings, steps, byEye, fill, unfill, cook, save, undo } = state;
+  const sheet = useRef<HTMLElement>(null);
+  const drawing = useDrawing(recipe.id, recipe.drawing ?? [], sheet);
+  // The rewritten steps and the reel's are different texts: strokes on one stay off the other.
+  const stepAnchor = recipe.steps_rewritten && !asInReel ? "rewrite" : "step";
 
   const title = [recipe.nome_riga_1, recipe.nome_riga_2].filter(Boolean).join(" ");
   const table = doseTable(recipe.ingredients, servings);
@@ -46,9 +52,9 @@ export function ZineRecipe({ recipe, library }: { recipe: RecipeDetail; library:
     : null;
 
   return (
-    <article className={styles.sheet} aria-busy={pending}>
+    <article ref={sheet} className={styles.sheet} aria-busy={pending} data-anchor="sheet">
       <div className={styles.top}>
-        <div className={styles.copy}>
+        <div className={styles.copy} data-anchor="photo">
           {recipe.photo ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -70,7 +76,7 @@ export function ZineRecipe({ recipe, library }: { recipe: RecipeDetail; library:
           )}
         </div>
 
-        <nav className={styles.znav} aria-label="Menu">
+        <nav className={styles.znav} aria-label="Menu" data-anchor="menu">
           <ul>
             <li>
               <Link href="/">libreria</Link>
@@ -112,6 +118,22 @@ export function ZineRecipe({ recipe, library }: { recipe: RecipeDetail; library:
       </div>
 
       <div className={styles.tools}>
+        <span className={styles.pen}>
+          <button type="button" aria-pressed={drawing.active} onClick={drawing.toggle}>
+            {drawing.active ? "fatto" : "pennarello"}
+          </button>
+          {drawing.active && (
+            <>
+              <button type="button" onClick={drawing.undo} disabled={drawing.strokes.length === 0}>
+                annulla
+              </button>
+              <button type="button" onClick={drawing.clear} disabled={drawing.strokes.length === 0}>
+                cancella tutto
+              </button>
+              <span>disegna sulla pagina · Esc per uscire</span>
+            </>
+          )}
+        </span>
         {recipe.filled_by ? (
           <>
             <span>Stime e passaggi riscritti da {modelName(recipe.filled_by)}.</span>
@@ -131,7 +153,7 @@ export function ZineRecipe({ recipe, library }: { recipe: RecipeDetail; library:
 
       <div className={styles.spread}>
         <div className={styles.left}>
-          <div className={styles.title}>
+          <div className={styles.title} data-anchor="title">
             <div>
               <p className={styles.no}>
                 ricetta N° {recipe.id}
@@ -166,7 +188,7 @@ export function ZineRecipe({ recipe, library }: { recipe: RecipeDetail; library:
                     ? `circa ${line.value} (stima)`
                     : line.value;
               return (
-                <figure key={item.index} className={styles.cut}>
+                <figure key={item.index} className={styles.cut} data-anchor={`ing-${item.index}`}>
                   {item.image ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -192,7 +214,7 @@ export function ZineRecipe({ recipe, library }: { recipe: RecipeDetail; library:
         </div>
 
         <div className={styles.right}>
-          <div className={styles.dosewrap}>
+          <div className={styles.dosewrap} data-anchor="dose">
             <table className={styles.dose}>
               <caption>Dosi per persone</caption>
               <thead>
@@ -341,7 +363,7 @@ export function ZineRecipe({ recipe, library }: { recipe: RecipeDetail; library:
           {steps.length > 0 ? (
             <ol className={styles.steps}>
               {steps.map((step, i) => (
-                <li key={i}>
+                <li key={i} data-anchor={`${stepAnchor}-${i}`}>
                   <span>
                     {markTimes(step).map((segment, j) =>
                       segment.mark ? (
@@ -361,7 +383,7 @@ export function ZineRecipe({ recipe, library }: { recipe: RecipeDetail; library:
             <p className={styles.legend}>Il reel non spiega i passaggi.</p>
           )}
 
-          <div className={styles.cookedRow}>
+          <div className={styles.cookedRow} data-anchor="cooked">
             <button type="button" className={styles.cooked} onClick={cook} disabled={pending}>
               l&apos;ho cucinata
               <span>
@@ -382,11 +404,11 @@ export function ZineRecipe({ recipe, library }: { recipe: RecipeDetail; library:
       </div>
 
       <p className="sr-only" aria-live="polite">
-        {status}
+        {status} {drawing.message}
       </p>
 
       {others.length > 0 && (
-        <nav className={styles.issues} aria-label="Altri numeri in libreria">
+        <nav className={styles.issues} aria-label="Altri numeri in libreria" data-anchor="issues">
           <p className={styles.h}>Altri numeri in libreria</p>
           <ol>
             {others.map((item) => (
@@ -421,6 +443,8 @@ export function ZineRecipe({ recipe, library }: { recipe: RecipeDetail; library:
       <p className={styles.foot} aria-hidden="true">
         burp!
       </p>
+
+      <DrawingLayer drawing={drawing} sheet={sheet} />
     </article>
   );
 }

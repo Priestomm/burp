@@ -17,7 +17,7 @@ from burp.catalog import SynonymIndex, load_ingredients
 from burp.config import Settings, anthropic_client
 from burp.fill import ClaudeFiller, Filler
 from burp.library import Cooked, Library, Media, SavedRecipe
-from burp.models import Completeness, ContentSource, Course, Diet, Tags
+from burp.models import Completeness, ContentSource, Course, Diet, Stroke, Tags
 from burp.view import IngredientImage, IngredientView, ingredient_views, missing_names
 
 
@@ -89,6 +89,15 @@ class RecipeDetail(BaseModel):
     cooked: CookedOut
     photo: PhotoOut | None
     photo_pending: bool = Field(description="A dish photo is being made")
+    drawing: list[Stroke] = Field(description="Marker strokes drawn on it, oldest first")
+
+
+class DrawingIn(BaseModel):
+    strokes: list[Stroke] = Field(max_length=500)
+
+
+class DrawingOut(BaseModel):
+    strokes: list[Stroke]
 
 
 class QuantityIn(BaseModel):
@@ -194,6 +203,7 @@ def detail(lib: Library, saved: SavedRecipe) -> RecipeDetail:
         cooked=_cooked(lib.cooked(saved.id)),
         photo=_photo(lib.media(saved.id)),
         photo_pending=any(job.status in ("queued", "running") for job in lib.jobs(saved.id)),
+        drawing=lib.drawing(saved.id),
     )
 
 
@@ -322,6 +332,21 @@ def create_app(
     def mark_by_eye(lib: Lib, recipe_id: int, body: ByEyeIn) -> RecipeDetail:
         """ "Sì, a occhio": these quantities stay unknown, and that is fine."""
         return changed(lib, recipe_id, lambda: lib.mark_by_eye(recipe_id, body.indices))
+
+    @app.put("/api/recipes/{recipe_id}/drawing", operation_id="setDrawing")
+    def set_drawing(lib: Lib, recipe_id: int, body: DrawingIn) -> DrawingOut:
+        """The marker: the whole drawing, sent again after every stroke or undo."""
+        try:
+            return DrawingOut(strokes=lib.set_drawing(recipe_id, body.strokes))
+        except KeyError as error:
+            raise HTTPException(404, f"Non c'è nessuna ricetta #{recipe_id}.") from error
+
+    @app.delete("/api/recipes/{recipe_id}/drawing", operation_id="clearDrawing")
+    def clear_drawing(lib: Lib, recipe_id: int) -> DrawingOut:
+        try:
+            return DrawingOut(strokes=lib.set_drawing(recipe_id, []))
+        except KeyError as error:
+            raise HTTPException(404, f"Non c'è nessuna ricetta #{recipe_id}.") from error
 
     @app.post("/api/recipes/{recipe_id}/cooked", operation_id="markCooked")
     def mark_cooked(lib: Lib, recipe_id: int) -> CookedOut:

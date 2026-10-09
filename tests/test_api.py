@@ -123,6 +123,8 @@ def test_the_schema_names_every_operation(api):
         "markCooked",
         "fillRecipe",
         "clearFill",
+        "setDrawing",
+        "clearDrawing",
     }
 
 
@@ -314,3 +316,29 @@ def test_the_cuisine_word_reaches_the_page(tmp_path):
         "word": "もちもち",
         "meaning": "consistenza gommosa",
     }
+
+
+def test_the_marker_drawing_is_saved_replaced_and_cleared(api):
+    assert api.get("/api/recipes/1").json()["drawing"] == []
+    strokes = [{"anchor": "ing-3", "d": "M10 20L30 40L35 38"}, {"anchor": "photo", "d": "M0 0L1 1"}]
+    assert api.put("/api/recipes/1/drawing", json={"strokes": strokes}).json()["strokes"] == strokes
+    assert api.get("/api/recipes/1").json()["drawing"] == strokes
+    # Undo: the browser sends the drawing again, one stroke shorter.
+    api.put("/api/recipes/1/drawing", json={"strokes": strokes[:1]})
+    assert api.get("/api/recipes/1").json()["drawing"] == strokes[:1]
+    assert api.delete("/api/recipes/1/drawing").json()["strokes"] == []
+    assert api.get("/api/recipes/1").json()["drawing"] == []
+    assert api.put("/api/recipes/99/drawing", json={"strokes": strokes}).status_code == 404
+
+
+@pytest.mark.parametrize(
+    "stroke",
+    [
+        {"anchor": "photo", "d": "M10 20 <script>"},
+        {"anchor": "photo", "d": "M10 20L30 40Z"},
+        {"anchor": "Photo", "d": "M10 20"},
+        {"anchor": "ing-3", "d": "M10 20", "colour": "red"},
+    ],
+)
+def test_only_plain_marker_paths_are_accepted(api, stroke):
+    assert api.put("/api/recipes/1/drawing", json={"strokes": [stroke]}).status_code == 422

@@ -162,6 +162,8 @@ In `/impostazioni` scegli tra due temi: **Adesivi** e **Zine**. Dati e funzioni 
 
 Lo Zine è una pagina di fanzine su carta gialla: il fotogramma del piatto fotocopiato (dithering a 1 bit, macchioline di toner, ombra del coperchio, bordo strappato) con il ritaglio del piatto che ne esce, gli ingredienti come ritagli fotocopiati a forbice, la tabella delle dosi per 1, 2, 3… persone, e le note a pennarello blu generate dai dati: «io!» sulla colonna dell'1, un anello con «quanti?» attorno alle quantità mancanti, un'ondulata sotto tempi e temperature. «L'ho cucinata» scrive da sé «burp!» con la data.
 
+Il **pennarello** (pulsante in cima alla ricetta Zine) disegna a mano libera sulla pagina, con il mouse, il dito o la penna. Ogni tratto si aggancia all'elemento che ha sotto il suo centro (la foto, il titolo, un ingrediente, un passaggio, la tabella) e si salva in millesimi della larghezza di quell'elemento: sul telefono, dove il testo va a capo in un altro modo, il cerchio attorno al tofu resta attorno al tofu. Il disegno si salva intero dopo ogni tratto (`PUT /api/recipes/{id}/drawing`), così «annulla» è solo un tratto in meno; Esc o «fatto» per uscire.
+
 Le immagini dello Zine si preparano in background, come la foto:
 
 - **Piatto**: la fotocopia e il ritaglio partono dal fotogramma già scelto per gli Adesivi. Il ritaglio usa rembg, in locale (extra `cutout`).

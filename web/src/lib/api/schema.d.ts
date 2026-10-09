@@ -125,6 +125,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/recipes/{recipe_id}/drawing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Drawing
+         * @description The marker: the whole drawing, sent again after every stroke or undo.
+         */
+        put: operations["setDrawing"];
+        post?: never;
+        /** Clear Drawing */
+        delete: operations["clearDrawing"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/recipes/{recipe_id}/cooked": {
         parameters: {
             query?: never;
@@ -177,6 +198,16 @@ export interface components {
             count: number;
             /** Last */
             last: string | null;
+        };
+        /** DrawingIn */
+        DrawingIn: {
+            /** Strokes */
+            strokes: components["schemas"]["Stroke"][];
+        };
+        /** DrawingOut */
+        DrawingOut: {
+            /** Strokes */
+            strokes: components["schemas"]["Stroke"][];
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -385,6 +416,27 @@ export interface components {
              * @description A dish photo is being made
              */
             photo_pending: boolean;
+            /**
+             * Drawing
+             * @description Marker strokes drawn on it, oldest first
+             */
+            drawing: components["schemas"]["Stroke"][];
+        };
+        /**
+         * Stroke
+         * @description One line drawn by hand with the marker on a recipe.
+         */
+        Stroke: {
+            /**
+             * Anchor
+             * @description The element it was drawn on: photo, title, ing-3, step-0, sheet...
+             */
+            anchor: string;
+            /**
+             * D
+             * @description SVG path, see above
+             */
+            d: string;
         };
         /** Tags */
         Tags: {
@@ -639,6 +691,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RecipeDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    setDrawing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipe_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DrawingIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DrawingOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clearDrawing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipe_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DrawingOut"];
                 };
             };
             /** @description Validation Error */
