@@ -314,9 +314,9 @@ def main() -> int:
         return import_post(post, catalog, client, settings.model, transcriber, describer)
 
     api = TelegramApi(settings.telegram_bot_token)
-    api.set_commands(COMMANDS)
-    log.info("bot started, waiting for messages")
-    try:
+    try:  # Ctrl+C (or `burp dev` stopping) may come at any point, even while starting
+        api.set_commands(COMMANDS)
+        log.info("bot started, waiting for messages")
         poll(
             api,
             lambda update: handle_update(

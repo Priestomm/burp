@@ -2,6 +2,7 @@
 
 import os
 import signal
+import socket
 import subprocess
 import sys
 import threading
@@ -19,6 +20,7 @@ class Service:
     name: str
     command: list[str]
     cwd: Path
+    port: int | None = None  # where it listens, checked before anything starts
 
 
 def services(
@@ -26,7 +28,7 @@ def services(
 ) -> tuple[list[Service], list[str]]:
     """What to start, and why anything asked for is left out."""
     python = [sys.executable, "-m", "burp"]
-    chosen = [Service("api", [*python, "serve"], ROOT_DIR)]
+    chosen = [Service("api", [*python, "serve"], ROOT_DIR, port=8000)]
     skipped = []
     if bot:
         if settings.telegram_bot_token and settings.telegram_allowed_user_ids:
@@ -34,8 +36,47 @@ def services(
         else:
             skipped.append("bot: TELEGRAM_BOT_TOKEN o TELEGRAM_ALLOWED_USER_IDS mancanti nel .env")
     if web:
-        chosen.append(Service("web", ["pnpm", "dev"], ROOT_DIR / "web"))
+        chosen.append(Service("web", ["pnpm", "dev"], ROOT_DIR / "web", port=3000))
     return chosen, skipped
+
+
+def busy_ports(chosen: list[Service]) -> list[str]:
+    """One line for each port already taken, saying by whom when lsof can tell."""
+    problems = []
+    for service in chosen:
+        if service.port is None:
+            continue
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+            probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                probe.bind(("127.0.0.1", service.port))
+                continue
+            except OSError:
+                pass
+        holder = _holder(service.port)
+        problems.append(
+            f"[{service.name}] la porta {service.port} è già occupata"
+            + (
+                f" da {holder[1]} (PID {holder[0]}): fermalo con `kill {holder[0]}`"
+                if holder
+                else ""
+            )
+        )
+    return problems
+
+
+def _holder(port: int) -> tuple[str, str] | None:
+    try:
+        out = subprocess.run(
+            ["lsof", "-nP", f"-iTCP:{port}", "-sTCP:LISTEN", "-Fpc"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        ).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    fields = {line[0]: line[1:] for line in out.splitlines() if line}
+    return (fields["p"], fields.get("c", "?")) if "p" in fields else None
 
 
 def _relay(name: str, stream, out, lock: threading.Lock) -> None:
@@ -63,7 +104,10 @@ def run(chosen: list[Service], out=sys.stdout) -> int:
     def interrupt(signum, frame):
         raise KeyboardInterrupt
 
-    signal.signal(signal.SIGTERM, interrupt)  # `kill`, or a closed terminal: same as Ctrl+C
+    # `kill`, or the terminal closed: same as Ctrl+C. The children are in their own session
+    # (so that Ctrl+C reaches only us), so without this they would outlive us.
+    signal.signal(signal.SIGTERM, interrupt)
+    signal.signal(signal.SIGHUP, interrupt)
     env = {**os.environ, "PYTHONUNBUFFERED": "1", "FORCE_COLOR": "1"}
     for service in chosen:
         try:

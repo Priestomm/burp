@@ -161,6 +161,12 @@ def main(
         from burp import dev
 
         chosen, skipped = dev.services(settings, bot=not args.no_bot, web=not args.no_web)
+        if busy := dev.busy_ports(chosen):
+            print("\n".join(busy), file=sys.stderr)
+            print(
+                "non ho avviato niente: forse è rimasto aperto un altro burp dev", file=sys.stderr
+            )
+            return 1
         for reason in skipped:
             print(f"salto {reason}", file=sys.stderr)
         print(
