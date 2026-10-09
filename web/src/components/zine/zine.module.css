@@ -662,6 +662,9 @@ button:disabled {
 
 .issues .h,
 .libraryHead .h {
+  /* Above the big heading, whose letters reach up over the link. */
+  position: relative;
+  z-index: 1;
   margin: 0;
   font-weight: 700;
   font-size: 11px;
@@ -710,6 +713,8 @@ button:disabled {
 }
 
 .foot {
+  /* Decoration: its huge letters reach up over the links above, and must not catch clicks. */
+  pointer-events: none;
   margin: 26px 0 -3.5%;
   padding: 0 12px;
   font-family: var(--wide);
@@ -797,6 +802,8 @@ button:disabled {
 
 .drawingOn {
   pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
   touch-action: none;
   cursor: crosshair;
 }
@@ -813,6 +820,10 @@ button:disabled {
   align-items: center;
   gap: 6px 10px;
   margin-right: auto;
+}
+
+.penNote {
+  font-weight: 700;
 }
 
 .pen button[aria-pressed="true"] {

@@ -46,12 +46,19 @@ export function useDrawing(recipeId: number, initial: Stroke[], sheet: RefObject
     measure();
     // One save after the other, so a slow request never overwrites a newer drawing.
     saving.current = saving.current.then(async () => {
-      const result = await saveDrawing(recipeId, next);
-      setMessage(result.ok ? done : `Disegno non salvato: ${result.error}`);
+      try {
+        const result = await saveDrawing(recipeId, next);
+        setMessage(result.ok ? done : `Disegno non salvato: ${result.error}`);
+      } catch {
+        // The server restarted since this page was opened, or is off: the action is gone.
+        setMessage("Disegno non salvato: ricarica la pagina e riprova.");
+      }
     });
   }
 
   return {
+    /** Only failures: the rest is said to screen readers by the page. */
+    problem: message.startsWith("Disegno non salvato") || message.startsWith("Troppi") ? message : "",
     strokes,
     places,
     active,
@@ -97,6 +104,7 @@ export function DrawingLayer({ drawing, sheet }: { drawing: Drawing; sheet: RefO
 
   function down(event: PointerEvent<SVGSVGElement>) {
     if (!drawing.active || event.button > 0) return;
+    event.preventDefault(); // no text selection or image drag while drawing
     event.currentTarget.setPointerCapture(event.pointerId);
     const point = { x: event.clientX, y: event.clientY };
     pen.current = { layer: event.currentTarget, points: [point] };

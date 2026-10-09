@@ -133,6 +133,11 @@ export function ZineRecipe({ recipe, library }: { recipe: RecipeDetail; library:
               <span>disegna sulla pagina · Esc per uscire</span>
             </>
           )}
+          {drawing.problem && (
+            <span className={styles.penNote} role="alert">
+              {drawing.problem}
+            </span>
+          )}
         </span>
         {recipe.filled_by ? (
           <>
