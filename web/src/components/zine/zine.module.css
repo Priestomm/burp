@@ -77,9 +77,9 @@
   image-rendering: pixelated;
 }
 
-/* Until the photocopy is ready: the original frame, greyed and hard. */
+/* Until the print is ready: the original frame, in colour like the print. */
 .copy > img.rough {
-  filter: grayscale(1) contrast(1.6) brightness(1.08) drop-shadow(2.5px 3.5px 5px rgb(70 45 0 / 30%));
+  filter: saturate(1.2) drop-shadow(2.5px 3.5px 5px rgb(70 45 0 / 30%));
 }
 
 .blank {

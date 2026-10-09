@@ -266,3 +266,31 @@ def test_backfill_words_saves_only_real_cuisine_words(library, capsys):
     assert library.get(1).recipe.parola_cucina is None
     assert library.get(2).recipe.parola_cucina.parola == "もちもち"
     assert "もちもち (ja)" in capsys.readouterr().out
+
+
+def test_photos_from_reels_redo_never_replaces_a_photo_you_sent(
+    library, capsys, monkeypatch, tmp_path
+):
+    from burp.ingest import SourcePost
+    from burp.library import Media
+    from burp.models import ImportedRecipe
+
+    monkeypatch.setenv("BURP_PHOTO_FROM_REEL", "true")
+    reel = tmp_path / "post.mp4"
+    reel.write_bytes(b"video")
+    fetched = []
+
+    def fetch(url, cookies_file=None):
+        fetched.append(url)
+        return SourcePost(url=url, video_path=reel)
+
+    monkeypatch.setattr("burp.cli.fetch_instagram", fetch)
+    for n, source in ((1, "reel"), (2, "screenshot")):
+        url = f"https://www.instagram.com/reel/r{n}/"
+        library.add(ImportedRecipe(recipe=valid_recipe(source_url=url), content_source="caption"))
+        library.set_media(n, Media(f"{n}/o.jpg", f"{n}/h.png", source, 0.9, "x", None, url))
+
+    assert main(["photos-from-reels"], library=library) == 0
+    assert fetched == []  # both have a photo
+    assert main(["photos-from-reels", "--redo"], library=library) == 0
+    assert fetched == ["https://www.instagram.com/reel/r1/"]

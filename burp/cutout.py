@@ -12,7 +12,7 @@ from typing import Protocol
 import numpy as np
 from PIL import Image, ImageDraw
 
-from burp.photocopy import INGREDIENT, PAPER, Exposure, photocopy
+from burp.photocopy import INGREDIENT, PAPER, Exposure, colour_print, photocopy
 from burp.scissors import scissor_polygon
 
 
@@ -46,8 +46,10 @@ def make_cutout(
     exposure: Exposure = INGREDIENT,
     margin: float = 12,
     seed: int = 0,
+    colour: bool = False,
 ) -> Image.Image:
-    """The object of `image`, photocopied on paper and cut out. RGBA, transparent outside."""
+    """The object of `image`, photocopied on paper (or printed in colour) and cut out. RGBA,
+    transparent outside."""
     source = image.convert("RGB")
     source.thumbnail((width, width * 2))
     removed = remover.remove(source).convert("RGBA")
@@ -63,7 +65,12 @@ def make_cutout(
     mask = np.zeros((h + 2 * pad, w + 2 * pad), dtype=bool)
     mask[pad : pad + h, pad : pad + w] = alpha > 128
 
-    printed = photocopy(sheet, width=sheet.width, exposure=exposure, copier_marks=False, torn=False)
+    if colour:
+        printed = colour_print(sheet, width=sheet.width, seed=seed, torn=False)
+    else:
+        printed = photocopy(
+            sheet, width=sheet.width, exposure=exposure, copier_marks=False, torn=False
+        )
     polygon = scissor_polygon(mask, margin=margin, seed=seed)
     cut = Image.new("L", printed.size, 0)
     ImageDraw.Draw(cut).polygon(polygon, fill=255)

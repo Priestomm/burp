@@ -118,7 +118,7 @@ class Media:
     alt: str
     creator: str | None
     source_url: str | None
-    photocopy: str | None = None  # Zine: the dish photocopied, with its torn edge
+    photocopy: str | None = None  # Zine: the dish printed (in colour) with a torn edge
     cutout: str | None = None  # Zine: the dish cut out with scissors
 
 

@@ -308,7 +308,7 @@ export interface components {
             original_src: string;
             /**
              * Photocopy Src
-             * @description Zine: photocopied, torn edge
+             * @description Zine: the dish printed in colour, torn edge
              */
             photocopy_src?: string | null;
             /**

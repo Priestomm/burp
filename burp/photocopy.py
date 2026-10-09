@@ -4,13 +4,17 @@ A port of the mockup's `atkinson`, `photocopy` and `tornEdge`. One output pixel 
 toner, so the print is made at about the size it is shown (one CSS pixel per dot). For the
 dish: higher contrast, toner specks, the dark shadow the copier lid leaves on the left and top
 edges, and a torn bottom edge (transparent below the tear).
+
+The dish itself is printed in colour (`colour_print`): in black and white food looks like boiled
+potatoes, and the page should make you want to cook it. The torn edge and a paper grain keep it
+on the same sheet as the photocopied ingredients.
 """
 
 import random
 from dataclasses import dataclass
 
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageEnhance, ImageFilter
 
 INK = (0x16, 0x13, 0x11)
 PAPER = (0xFB, 0xFA, 0xF5)
@@ -124,4 +128,29 @@ def photocopy(
         depth = max(8, height * 26 / 620)
         ImageDraw.Draw(mask).polygon(torn_edge(width, height, seed, depth), fill=255)
         printed.putalpha(Image.fromarray(np.minimum(np.asarray(mask), out[..., 3])))
+    return printed
+
+
+def colour_print(image: Image.Image, width: int, seed: int = 4, torn: bool = True) -> Image.Image:
+    """The dish in colour, as on a magazine page: a little warmer, richer and crisper, with a
+    paper grain, and the torn bottom edge of the photocopies. RGBA."""
+    source = image.convert("RGBA")
+    height = max(1, round(source.height * width / source.width))
+    source = source.resize((width, height), Image.Resampling.LANCZOS)
+    alpha = np.asarray(source)[..., 3]
+    rgb = source.convert("RGB")
+    rgb = ImageEnhance.Contrast(ImageEnhance.Color(rgb).enhance(1.25)).enhance(1.08)
+    arr = np.asarray(rgb).astype(np.float32)
+    arr[..., 0] *= 1.04  # warmer: food looks better in warm light
+    arr[..., 2] *= 0.94
+    grain = np.random.default_rng(seed).normal(0, 6, (height, width))[..., None]
+    arr = np.clip(arr + grain, 0, 255).astype(np.uint8)
+    rgb = Image.fromarray(arr).filter(ImageFilter.UnsharpMask(radius=1.2, percent=60))
+    printed = rgb.convert("RGBA")
+    printed.putalpha(Image.fromarray(np.where(alpha > 10, 255, 0).astype(np.uint8)))
+    if torn:
+        mask = Image.new("L", (width, height), 0)
+        depth = max(8, height * 26 / 620)
+        ImageDraw.Draw(mask).polygon(torn_edge(width, height, seed, depth), fill=255)
+        printed.putalpha(Image.fromarray(np.minimum(np.asarray(mask), np.asarray(printed)[..., 3])))
     return printed

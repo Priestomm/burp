@@ -877,7 +877,7 @@
               }
             ],
             "title": "Photocopy Src",
-            "description": "Zine: photocopied, torn edge"
+            "description": "Zine: the dish printed in colour, torn edge"
           },
           "cutout_src": {
             "anyOf": [

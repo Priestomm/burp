@@ -29,7 +29,9 @@ class CookedOut(BaseModel):
 class PhotoOut(BaseModel):
     src: str = Field(description="The halftone print, path under /api/media")
     original_src: str
-    photocopy_src: str | None = Field(default=None, description="Zine: photocopied, torn edge")
+    photocopy_src: str | None = Field(
+        default=None, description="Zine: the dish printed in colour, torn edge"
+    )
     cutout_src: str | None = Field(default=None, description="Zine: the dish cut out")
     alt: str
     source: str = Field(description="frame (a video you sent), screenshot, or reel (the post's)")

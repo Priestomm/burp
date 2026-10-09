@@ -23,8 +23,8 @@ from burp.config import Settings, anthropic_client, load_env, setup_logging
 from burp.frames import ClaudeFrameDescriber
 from burp.ingest import SourcePost, fetch_instagram, from_caption, from_screenshots, from_video
 from burp.ingredient_images import build_finder
-from burp.library import Library
-from burp.photo import ClaudeFramePicker
+from burp.library import Library, Media
+from burp.photo import REEL, ClaudeFramePicker
 from burp.pipeline import import_post
 from burp.render import full_text, one_line, summarize
 from burp.structure import cuisine_word, split_title
@@ -88,6 +88,9 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
         help="dish photos from the reels of saved recipes (needs BURP_PHOTO_FROM_REEL=true)",
     )
     reels.add_argument("--dry-run", action="store_true", help="list them, download nothing")
+    reels.add_argument(
+        "--redo", action="store_true", help="also redo the photos already taken from a reel"
+    )
 
     zine = commands.add_parser("zine-images", help="queue the Zine prints of existing photos")
     zine.add_argument("--all", action="store_true", help="also redo the ones already made")
@@ -322,7 +325,8 @@ def attach_photo(args: argparse.Namespace, settings: Settings, library: Library)
 
 
 def photos_from_reels(args: argparse.Namespace, settings: Settings, library: Library) -> int:
-    """Queue a photo from the reel of every saved recipe that has none (opt-in)."""
+    """Queue a photo from the reel of every saved recipe that has none (opt-in). With --redo,
+    also the ones whose photo already came from the reel; never the photos you sent."""
     if not settings.photo_from_reel:
         print(
             "Spento: per usare i video dei reel metti BURP_PHOTO_FROM_REEL=true in .env "
@@ -334,7 +338,7 @@ def photos_from_reels(args: argparse.Namespace, settings: Settings, library: Lib
         saved
         for saved in library.search()
         if saved.recipe.source_url
-        and library.media(saved.id) is None
+        and _reel_photo_wanted(library.media(saved.id), args.redo)
         and not any(job.status in ("queued", "running") for job in library.jobs(saved.id))
     ]
     if not todo:
@@ -357,6 +361,10 @@ def photos_from_reels(args: argparse.Namespace, settings: Settings, library: Lib
         queue_photo(library, saved.id, [], settings.media_dir, reel=post.downloaded_video)
         print(f"#{saved.id}: foto in coda")
     return 0
+
+
+def _reel_photo_wanted(media: Media | None, redo: bool) -> bool:
+    return media is None or (redo and media.source == REEL)
 
 
 def queue_zine_images(args: argparse.Namespace, library: Library) -> int:

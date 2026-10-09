@@ -38,6 +38,21 @@ VIDEO_SUFFIXES = {".mp4", ".mov", ".m4v", ".webm"}
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp"}  # what Pillow opens without plugins
 
 
+class Area(BaseModel):
+    """A rectangle in fractions of the image: 0,0 top left, 1,1 bottom right."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    left: float = Field(ge=0, le=1)
+    top: float = Field(ge=0, le=1)
+    right: float = Field(ge=0, le=1)
+    bottom: float = Field(ge=0, le=1)
+
+
+# Smaller than this, a crop would be too blurry to print (and is more likely a mistake).
+MIN_CROP = 0.25
+
+
 class Pick(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -45,6 +60,11 @@ class Pick(BaseModel):
     confidence: float = Field(ge=0, le=1, description="Quanto sei sicuro che sia il piatto finito")
     alt: str = Field(description="Testo alternativo in italiano, max 120 caratteri")
     reason: str = Field(description="Perché questa, in breve")
+    piatto: Area | None = Field(
+        default=None,
+        description="Il riquadro del piatto nell'immagine scelta, lasciando fuori sottotitoli e "
+        "scritte sovrapposte; null se l'immagine non ha scritte",
+    )
 
 
 class FramePicker(Protocol):
@@ -54,6 +74,9 @@ class FramePicker(Protocol):
 PICK_PROMPT = """\
 Queste immagini vengono da un video di cucina o da screenshot di un post. Scegli quella in cui \
 il piatto finito si vede meglio: intero, nitido, ben illuminato, senza mani o testo sopra. \
+Sottotitoli e scritte sovrapposte al video contano come testo: preferisci sempre un'immagine \
+senza, anche se un po' meno bella. Se tutte ne hanno, scegli la migliore e indica in piatto il \
+riquadro che contiene il piatto lasciando fuori le scritte. \
 Deve essere una fotografia vera: scarta illustrazioni, disegni e grafiche. \
 Scarta anche ingredienti crudi, passaggi a metà, schermate di solo testo e volti. \
 Se nessuna mostra \
@@ -123,6 +146,19 @@ def user_media(paths: list[Path]) -> list[Path]:
     return [p for p in paths if p.suffix.lower() in IMAGE_SUFFIXES | VIDEO_SUFFIXES]
 
 
+def crop_to(image: Image.Image, area: Area | None) -> Image.Image:
+    """The part of the frame with the dish and without the subtitles, if the picker gave one
+    that makes sense; else the whole frame."""
+    if area is None:
+        return image
+    left, right = sorted((area.left, area.right))
+    top, bottom = sorted((area.top, area.bottom))
+    if (right - left) * (bottom - top) < MIN_CROP:
+        return image
+    w, h = image.size
+    return image.crop((round(left * w), round(top * h), round(right * w), round(bottom * h)))
+
+
 @dataclass
 class PhotoOutcome:
     media: Media | None
@@ -167,7 +203,7 @@ def make_photo(
         folder = media_dir / str(recipe_id)
         folder.mkdir(parents=True, exist_ok=True)
         with Image.open(chosen) as image:
-            original = image.convert("RGB")
+            original = crop_to(image.convert("RGB"), choice.piatto)
         original.save(folder / "original.jpg", quality=90)
         halftone(original).save(folder / "halftone.png", optimize=True)
 

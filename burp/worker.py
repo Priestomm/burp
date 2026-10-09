@@ -16,7 +16,7 @@ from burp.cutout import BackgroundRemover, RembgRemover, make_cutout
 from burp.ingredient_images import Finder
 from burp.library import Job, Library
 from burp.photo import FramePicker, make_photo, stash_inputs, user_media
-from burp.photocopy import DISH, photocopy
+from burp.photocopy import colour_print
 
 log = logging.getLogger(__name__)
 
@@ -131,16 +131,16 @@ def _run_zine(
         return "nessuna foto del piatto da fotocopiare"
     with Image.open(media_dir / media.original) as original:
         frame = original.convert("RGB")
-    printed = photocopy(landscape(frame), width=900, exposure=DISH, seed=recipe_id)
+    printed = colour_print(landscape(frame), width=900, seed=recipe_id)
     target = f"{recipe_id}/photocopy.png"
     printed.save(media_dir / target, optimize=True)
-    notes = ["fotocopia del piatto"]
+    notes = ["stampa del piatto"]
 
     if remover is None:
         notes.append("ritaglio saltato: installa l'extra cutout")
     else:
         try:
-            cut = make_cutout(frame, remover, width=420, exposure=DISH, seed=recipe_id)
+            cut = make_cutout(frame, remover, width=420, seed=recipe_id, colour=True)
         except ValueError as error:  # no clear object in the frame
             notes.append(f"nessun ritaglio ({error})")
         else:
