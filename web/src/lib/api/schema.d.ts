@@ -300,11 +300,9 @@ export interface components {
         /** PhotoOut */
         PhotoOut: {
             /**
-             * Src
-             * @description The halftone print, path under /api/media
+             * Original Src
+             * @description The frame as chosen, path under /api/media
              */
-            src: string;
-            /** Original Src */
             original_src: string;
             /**
              * Photocopy Src

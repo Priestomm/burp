@@ -858,14 +858,10 @@
       },
       "PhotoOut": {
         "properties": {
-          "src": {
-            "type": "string",
-            "title": "Src",
-            "description": "The halftone print, path under /api/media"
-          },
           "original_src": {
             "type": "string",
-            "title": "Original Src"
+            "title": "Original Src",
+            "description": "The frame as chosen, path under /api/media"
           },
           "photocopy_src": {
             "anyOf": [
@@ -925,7 +921,6 @@
         },
         "type": "object",
         "required": [
-          "src",
           "original_src",
           "alt",
           "source",

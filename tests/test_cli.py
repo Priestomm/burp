@@ -183,7 +183,7 @@ def test_photo_then_worker_once(library, capsys, tmp_path):
     assert main(["worker", "--once"], client=FakeClient(pick), library=library) == 0
     media = library.media(1)
     assert media.alt == "Un piatto di gnocchi"
-    assert (tmp_path / "media" / media.halftone).exists()
+    assert (tmp_path / "media" / media.original).exists()
 
 
 def test_photo_rejects_unknown_recipes_and_files(library, capsys, tmp_path):
@@ -240,8 +240,8 @@ def test_zine_images_queues_prints_and_ingredient_pictures(library, capsys):
 
     for _ in range(3):
         library.add(ImportedRecipe(recipe=valid_recipe(), content_source="caption"))
-    library.set_media(1, Media("1/original.jpg", "1/halftone.png", "reel", 0.9, "x", None, None))
-    library.set_media(2, Media("2/original.jpg", "2/halftone.png", "reel", 0.9, "x", None, None))
+    library.set_media(1, Media("1/original.jpg", "reel", 0.9, "x", None, None))
+    library.set_media(2, Media("2/original.jpg", "reel", 0.9, "x", None, None))
     library.set_zine_media(2, photocopy="2/photocopy.png")
     assert main(["zine-images"], library=library) == 0
     assert [j.kind for j in library.jobs(1)] == ["zine", "ingredients"]
@@ -288,7 +288,7 @@ def test_photos_from_reels_redo_never_replaces_a_photo_you_sent(
     for n, source in ((1, "reel"), (2, "screenshot")):
         url = f"https://www.instagram.com/reel/r{n}/"
         library.add(ImportedRecipe(recipe=valid_recipe(source_url=url), content_source="caption"))
-        library.set_media(n, Media(f"{n}/o.jpg", f"{n}/h.png", source, 0.9, "x", None, url))
+        library.set_media(n, Media(f"{n}/o.jpg", source, 0.9, "x", None, url))
 
     assert main(["photos-from-reels"], library=library) == 0
     assert fetched == []  # both have a photo

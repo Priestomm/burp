@@ -133,9 +133,10 @@ Dopo l'import, un job in background prepara la foto senza far aspettare la ricet
 1. prende quello che mandi tu: screenshot, o un video (registrazione dello schermo, clip). Il video del reel scaricato dal link si usa **solo se accendi `BURP_PHOTO_FROM_REEL=true`** (vedi sotto);
 2. dai video estrae 10 fotogrammi, 7 dall'ultimo terzo, dove di solito c'è il piatto finito;
 3. un modello veloce (`BURP_FAST_MODEL`) sceglie l'immagine dove il piatto finito si vede meglio, con una confidenza e un testo alternativo. Sotto 0,5 non usa niente;
-4. salva l'originale e una stampa a retino a due inchiostri (rosso a 15°, nero a 45°), con creator e link del post per l'attribuzione.
+4. salva il fotogramma, con creator e link del post per l'attribuzione. Se i sottotitoli del reel coprono ogni fotogramma, il modello indica il riquadro del piatto e la foto si ritaglia lì;
+5. un secondo job ne fa la stampa per la pagina (vedi sotto).
 
-Senza una foto buona la pagina mostra solo carta e adesivi: **nessuna immagine generata**.
+Senza una foto buona la pagina mostra un foglio bianco: **nessuna immagine generata**.
 
 ```sh
 uv run burp import --caption-file caption.txt --video registrazione.mov
@@ -152,27 +153,26 @@ Con `BURP_PHOTO_FROM_REEL=true` nel `.env`, per gli import da link la foto si pr
 ```sh
 uv run burp photos-from-reels --dry-run   # quali ricette salvate non hanno ancora la foto
 uv run burp photos-from-reels             # riscarica i loro reel una volta e mette le foto in coda
+uv run burp photos-from-reels --redo      # rifà anche le foto già prese dai reel (mai quelle che mandi tu)
 ```
 
 Dopo ogni foto i file di partenza (video e screenshot copiati) vengono cancellati: restano solo il fotogramma scelto e la sua stampa.
 
-## Tema Zine
+## La pagina: una fanzine
 
-In `/impostazioni` scegli tra due temi: **Adesivi** e **Zine**. Dati e funzioni sono gli stessi; cambiano la pagina e una parte delle immagini.
+burp! ha un solo aspetto, lo **Zine**: una pagina di fanzine su carta gialla. Il piatto è stampato **a colori** (un po' più caldo e saturo, con una grana di carta e il bordo strappato), perché deve far venire voglia di cucinarlo, con il ritaglio a forbice del piatto che ne esce; gli ingredienti come ritagli fotocopiati a forbice, la tabella delle dosi per 1, 2, 3… persone, e le note a pennarello blu generate dai dati: «io!» sulla colonna dell'1, un anello con «quanti?» attorno alle quantità mancanti, un'ondulata sotto tempi e temperature. «L'ho cucinata» scrive da sé «burp!» con la data.
 
-Lo Zine è una pagina di fanzine su carta gialla: il fotogramma del piatto fotocopiato (dithering a 1 bit, macchioline di toner, ombra del coperchio, bordo strappato) con il ritaglio del piatto che ne esce, gli ingredienti come ritagli fotocopiati a forbice, la tabella delle dosi per 1, 2, 3… persone, e le note a pennarello blu generate dai dati: «io!» sulla colonna dell'1, un anello con «quanti?» attorno alle quantità mancanti, un'ondulata sotto tempi e temperature. «L'ho cucinata» scrive da sé «burp!» con la data.
+Il **pennarello** (pulsante in cima alla ricetta) disegna a mano libera sulla pagina, con il mouse, il dito o la penna. Ogni tratto si aggancia all'elemento che ha sotto il suo centro (la foto, il titolo, un ingrediente, un passaggio, la tabella) e si salva in millesimi della larghezza di quell'elemento: sul telefono, dove il testo va a capo in un altro modo, il cerchio attorno al tofu resta attorno al tofu. Il disegno si salva intero dopo ogni tratto (`PUT /api/recipes/{id}/drawing`), così «annulla» è solo un tratto in meno; Esc o «fatto» per uscire.
 
-Il **pennarello** (pulsante in cima alla ricetta Zine) disegna a mano libera sulla pagina, con il mouse, il dito o la penna. Ogni tratto si aggancia all'elemento che ha sotto il suo centro (la foto, il titolo, un ingrediente, un passaggio, la tabella) e si salva in millesimi della larghezza di quell'elemento: sul telefono, dove il testo va a capo in un altro modo, il cerchio attorno al tofu resta attorno al tofu. Il disegno si salva intero dopo ogni tratto (`PUT /api/recipes/{id}/drawing`), così «annulla» è solo un tratto in meno; Esc o «fatto» per uscire.
+Le immagini della pagina si preparano in background, come la foto:
 
-Le immagini dello Zine si preparano in background, come la foto:
-
-- **Piatto**: la fotocopia e il ritaglio partono dal fotogramma già scelto per gli Adesivi. Il ritaglio usa rembg, in locale (extra `cutout`).
+- **Piatto**: la stampa a colori e il ritaglio partono dal fotogramma scelto. Il ritaglio usa rembg, in locale (extra `cutout`).
 - **Ingredienti**: il modello veloce scrive le ricerche (una chiamata per ricetta), i prodotti confezionati si cercano su **Open Food Facts** (foto CC BY-SA 3.0: le nostre fotocopie ne sono derivate e restano CC BY-SA), gli altri su **Pexels** (serve `PEXELS_API_KEY`). Il modello sceglie la foto migliore tra 3-5, che viene scontornata, ritagliata a forbice e fotocopiata. Unsplash non si usa: la sua API obbliga a mostrare le immagini dai suoi indirizzi, senza modificarle.
 - Ogni ingrediente si cerca **una volta sola** e si riusa in tutte le ricette. Se non c'è una foto buona resta un biglietto di carta con il nome: mai immagini generate.
 - Le attribuzioni (fotografo e Pexels, prodotto e licenza Open Food Facts) sono in fondo alla pagina.
 
 ```sh
-uv run burp zine-images          # stampe Zine delle foto esistenti e ingredienti di tutte le ricette
+uv run burp zine-images          # stampe delle foto esistenti e ingredienti di tutte le ricette
 uv run burp worker --once        # le prepara (il bot lo fa da solo)
 uv run burp backfill-words       # la parola nella lingua della cucina, per le ricette già salvate
 ```
@@ -196,10 +196,11 @@ uv run burp bot            # bot Telegram (fa girare anche il worker)
 cd web && pnpm dev         # http://localhost:3000
 ```
 
-- **Libreria** (`/`): un foglio di adesivi, uno per ricetta, con forma e colore fissati dal suo numero e quanti dati restano da chiarire; ricerca a parole libere.
-- **Ricetta** (`/ricette/3`): nome in due righe enormi, aggettivi nel fumetto con la mascotte, foto a retino con gli adesivi della dieta e delle porzioni, avviso per le quantità mancanti ("Li scrivo io" / "Sì, a occhio"), selettore da 1 a 4 persone con le dosi ricalcolate, procedimento e "L'ho cucinata".
-- **Completa con l'AI**: il pulsante in cima alla ricetta (o «Stimale con l'AI» nell'avviso) chiede al modello veloce (`BURP_FAST_MODEL`, Haiku 5.5) di stimare le quantità che il reel non dice, porzioni e tempo se mancano, e di riscrivere i passaggi in modo più chiaro, dicendo cosa ha aggiunto. Le stime restano separate: compaiono con l'adesivo «stima», le tue correzioni vincono sempre, «Togli le stime» torna al reel e «Come nel reel» mostra i passaggi originali. Circa 0,1¢ a clic.
-- **Adesivi** (`/adesivi`): tutti i componenti SVG su un foglio.
+- **Libreria** (`/`): l'indice dei numeri della fanzine, con quanti dati restano da chiarire in ogni ricetta; ricerca a parole libere, e «da cucinare» per quelle mai cucinate.
+- **Ricetta** (`/ricette/3`): il piatto stampato, il nome in grande, gli ingredienti ritagliati, la tabella delle dosi per 1, 2, 3… persone, l'avviso per le quantità mancanti ("li scrivo io" / "sì, a occhio"), il procedimento e "l'ho cucinata".
+- **Completa con l'AI**: il pulsante in cima alla ricetta chiede al modello veloce (`BURP_FAST_MODEL`, Haiku 5.5) di stimare le quantità che il reel non dice, porzioni e tempo se mancano, e di riscrivere i passaggi in modo più chiaro, dicendo cosa ha aggiunto. Le stime restano separate: compaiono con «circa» e la croce †, le tue correzioni vincono sempre, «togli le stime» torna al reel e «come nel reel» mostra i passaggi originali. Circa 0,1¢ a clic.
+
+Il primo design, il tema **Adesivi**, è nella storia di git con l'etichetta `tema-adesivi`.
 
 Per ora gira solo in locale e senza login: prima di metterla online servono autenticazione e un hosting per API e foto.
 

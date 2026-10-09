@@ -34,7 +34,7 @@ describe("doseTable", () => {
     expect(doseTable(ingredients, 20).columns).toHaveLength(8);
   });
 
-  it("uses the same scaling as the Adesivi page", () => {
+  it("uses the same scaling as the dose lines", () => {
     const rows = doseTable(ingredients, 3).rows;
     expect(rows.find((r) => r.name === "tofu")?.cells).toEqual(["135 g", "265 g", "400 g"]);
     expect(rows.find((r) => r.name === "olio di sesamo")?.cells).toEqual([

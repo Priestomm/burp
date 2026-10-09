@@ -3,12 +3,12 @@
 By default only media the user hands over is used: screenshots, or a video they send (a
 screen recording, a clip). The reel downloaded with the link is used too only when the user
 turns on BURP_PHOTO_FROM_REEL, for personal use. Never an AI-generated image: with no good
-picture, the recipe page shows paper and stickers only.
+picture, the recipe page shows a blank sheet of paper.
 
 1. Collect candidates: the images, plus 10 frames of each video, most from its last third.
 2. A small vision model picks the one where the finished dish is most visible and sharp,
    with a confidence; below MIN_CONFIDENCE nothing is used.
-3. Save the original and its two-ink halftone print.
+3. Save it (the Zine prints are made from it by the next job, see worker.py).
 """
 
 import base64
@@ -27,7 +27,6 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from burp.config import FAST_OUTPUT
 from burp.frames import extract_frames, tail_weighted
-from burp.halftone import halftone
 from burp.library import Media
 
 log = logging.getLogger(__name__)
@@ -205,13 +204,11 @@ def make_photo(
         with Image.open(chosen) as image:
             original = crop_to(image.convert("RGB"), choice.piatto)
         original.save(folder / "original.jpg", quality=90)
-        halftone(original).save(folder / "halftone.png", optimize=True)
 
     count = len(candidates)
     log.info("photo: recipe %s, %s %d of %d", recipe_id, source, choice.best, count)
     media = Media(
         original=f"{recipe_id}/original.jpg",
-        halftone=f"{recipe_id}/halftone.png",
         source=source,
         confidence=choice.confidence,
         alt=choice.alt[:200],

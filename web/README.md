@@ -17,4 +17,4 @@ pnpm test && pnpm typecheck && pnpm lint
 
 `BURP_API_URL` cambia l'indirizzo dell'API (default `http://127.0.0.1:8000`).
 
-Gli adesivi sono componenti SVG in `src/components/stickers/`: `/adesivi` li mostra tutti su un foglio.
+La pagina è in `src/components/zine/`; le note a pennarello generate dai dati sono in `src/components/marker/`. Il primo design, a adesivi, è nella storia di git: `git checkout tema-adesivi`.

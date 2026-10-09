@@ -125,7 +125,7 @@ def _run_ingredients(library: Library, saved, finder: Finder | None) -> str:
 def _run_zine(
     library: Library, recipe_id: int, media_dir: Path, remover: BackgroundRemover | None
 ) -> str:
-    """Prints for the Zine theme, from the dish photo already chosen for Adesivi."""
+    """The prints for the page (colour print and cut-out), from the dish photo already chosen."""
     media = library.media(recipe_id)
     if media is None:
         return "nessuna foto del piatto da fotocopiare"

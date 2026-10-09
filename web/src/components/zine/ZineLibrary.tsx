@@ -4,12 +4,23 @@ import type { LibraryItem } from "@/lib/api/server";
 import styles from "./zine.module.css";
 
 /** The library as the index of a fanzine: issue number, title, what is left to clarify. */
-export function ZineLibrary({ items, query, heading }: { items: LibraryItem[]; query: string; heading: string }) {
+export function ZineLibrary({
+  items,
+  query,
+  heading,
+  empty,
+}: {
+  items: LibraryItem[];
+  query: string;
+  heading: string;
+  /** What to say when there is nothing to list. */
+  empty: string;
+}) {
   return (
     <div className={styles.library}>
       <header className={styles.libraryHead}>
         <p className={styles.h}>
-          burp! · <Link href="/impostazioni">impostazioni</Link>
+          <Link href="/">burp!</Link>
         </p>
         <h1>{heading}</h1>
         <Form action="/" className={styles.search} role="search">
@@ -22,11 +33,7 @@ export function ZineLibrary({ items, query, heading }: { items: LibraryItem[]; q
       </header>
       <nav className={styles.issues} aria-label="Ricette">
         <p className={styles.h}>
-          {items.length === 0
-            ? query
-              ? `Nessuna ricetta per «${query}».`
-              : "Ancora nessun numero: inoltra un reel al bot per cominciare."
-            : `${items.length} ${items.length === 1 ? "numero" : "numeri"}`}
+          {items.length === 0 ? empty : `${items.length} ${items.length === 1 ? "numero" : "numeri"}`}
         </p>
         <ol>
           {items.map((item) => (

@@ -51,7 +51,7 @@ def test_most_frames_come_from_the_last_third():
     assert all(0 < p < 1 for p in positions)
 
 
-def test_the_chosen_picture_is_saved_with_its_halftone(tmp_path, text_screenshot):
+def test_the_chosen_picture_is_saved(tmp_path, text_screenshot):
     picker = FakePicker(good(best=2))
     url = "https://www.instagram.com/reel/abc/"
     media_dir = tmp_path / "media"
@@ -63,8 +63,6 @@ def test_the_chosen_picture_is_saved_with_its_halftone(tmp_path, text_screenshot
     assert media.source == "screenshot" and media.confidence == 0.9
     assert media.alt.startswith("Gnocchi") and media.creator == "giuliapisco"
     assert media.source_url == url
-    with Image.open(media_dir / media.halftone) as printed:
-        assert printed.width == 1200
     with Image.open(media_dir / media.original) as original:
         assert original.size == (640, 360)
 
@@ -73,7 +71,7 @@ def test_no_photo_when_the_model_is_not_sure(tmp_path):
     outcome = make_photo(7, [DISH], FakePicker(good(confidence=0.3)), tmp_path)
     assert outcome.media is None
     assert "confidenza 0.30" in outcome.note
-    assert not (tmp_path / "7" / "halftone.png").exists()
+    assert not (tmp_path / "7" / "original.jpg").exists()
 
 
 def test_no_photo_when_nothing_shows_the_finished_dish(tmp_path, text_screenshot):
@@ -153,7 +151,7 @@ def test_worker_makes_the_photo_in_the_background(library, saved, tmp_path):
     assert (job.id, job.status) == (job_id, "done")
     assert (zine.kind, zine.status) == ("zine", "queued")  # the Zine prints come next
     media = library.media(saved.id)
-    assert media.creator == "giuliapisco" and (tmp_path / media.halftone).exists()
+    assert media.creator == "giuliapisco" and (tmp_path / media.original).exists()
     assert run_once(library, FakePicker(good()), tmp_path) is True  # the zine job
     assert library.media(saved.id).photocopy == f"{saved.id}/photocopy.png"
     assert (tmp_path / library.media(saved.id).photocopy).exists()
@@ -186,7 +184,7 @@ def test_media_goes_with_the_recipe(library, saved, tmp_path):
 
 def test_new_libraries_get_the_media_tables(tmp_path, catalog):
     with Library(tmp_path / "x.db", catalog) as lib:
-        assert lib.conn.execute("PRAGMA user_version").fetchone()[0] == 5
+        assert lib.conn.execute("PRAGMA user_version").fetchone()[0] == 6
 
 
 def test_inputs_are_deleted_after_the_job(library, saved, tmp_path):
@@ -195,7 +193,7 @@ def test_inputs_are_deleted_after_the_job(library, saved, tmp_path):
     run_once(library, FakePicker(good()), tmp_path)
     assert not (tmp_path / inputs[0]).exists()
     assert not (tmp_path / inputs[0]).parent.exists()
-    assert (tmp_path / library.media(saved.id).halftone).exists()  # the photo stays
+    assert (tmp_path / library.media(saved.id).original).exists()  # the photo stays
 
 
 def test_inputs_are_deleted_even_when_the_job_fails(library, saved, tmp_path):

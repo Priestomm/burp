@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { body, cond, grot, serif, wide } from "./fonts";
+import { grot, wide } from "./fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -8,14 +8,14 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f1eee8",
+  themeColor: "#ffd13b",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html
       lang="it"
-      className={`${cond.variable} ${serif.variable} ${body.variable} ${wide.variable} ${grot.variable}`}
+      className={`${wide.variable} ${grot.variable}`}
     >
       <body>{children}</body>
     </html>

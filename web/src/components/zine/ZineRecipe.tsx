@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRef } from "react";
 import { ARROW, BURP, DIGITS, IO, LOOP, QUANTI, RING, SQUIGGLE } from "@/components/marker/paths";
 import { Marker, digitsDrawing } from "@/components/marker/Marker";
-import { modelName, useRecipe } from "@/components/recipe/useRecipe";
 import type { LibraryItem, RecipeDetail } from "@/lib/api/server";
 import { markTimes } from "@/lib/annotate";
 import { scale } from "@/lib/dose";
@@ -12,6 +11,7 @@ import { doseTable } from "@/lib/doseTable";
 import { coursePlural, subtitle } from "@/lib/zineText";
 import { DrawingLayer, useDrawing } from "./Drawing";
 import { Hand } from "./Hand";
+import { modelName, useRecipe } from "./useRecipe";
 import styles from "./zine.module.css";
 
 const UNITS = ["g", "ml", "cucchiaio", "cucchiaino", "pezzo", "spicchio", "pizzico"];
@@ -91,9 +91,6 @@ export function ZineRecipe({ recipe, library }: { recipe: RecipeDetail; library:
             <li className={styles.soon}>
               incolla un link
               <span className="sr-only"> (non ancora disponibile)</span>
-            </li>
-            <li>
-              <Link href="/impostazioni">impostazioni</Link>
             </li>
           </ul>
           <ul aria-label="Portate">

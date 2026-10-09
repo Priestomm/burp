@@ -27,8 +27,7 @@ class CookedOut(BaseModel):
 
 
 class PhotoOut(BaseModel):
-    src: str = Field(description="The halftone print, path under /api/media")
-    original_src: str
+    original_src: str = Field(description="The frame as chosen, path under /api/media")
     photocopy_src: str | None = Field(
         default=None, description="Zine: the dish printed in colour, torn edge"
     )
@@ -123,7 +122,6 @@ def _photo(media: Media | None) -> PhotoOut | None:
     if media is None:
         return None
     return PhotoOut(
-        src=f"/api/media/{media.halftone}",
         original_src=f"/api/media/{media.original}",
         alt=media.alt,
         source=media.source,

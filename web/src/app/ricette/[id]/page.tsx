@@ -1,35 +1,21 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { StickerSheet } from "@/components/library/StickerSheet";
-import { AdesiviRecipe } from "@/components/recipe/AdesiviRecipe";
-import { SiteHeader } from "@/components/SiteHeader";
 import { Loading } from "@/components/Loading";
 import { ZineRecipe } from "@/components/zine/ZineRecipe";
 import { ApiError, type LibraryItem, type RecipeDetail, api } from "@/lib/api/server";
-import { type Theme, getTheme } from "@/lib/theme";
 
 export const metadata: Metadata = { title: "Ricetta" };
 
 export default function RecipePage(props: PageProps<"/ricette/[id]">) {
-  // The theme is only a cookie, read at once; then the wait looks like the page to come.
   return (
-    <Suspense fallback={null}>
-      <Themed params={props.params} />
+    <Suspense fallback={<Loading label="apro la ricetta…" />}>
+      <Recipe params={props.params} />
     </Suspense>
   );
 }
 
-async function Themed({ params }: { params: Promise<{ id: string }> }) {
-  const theme = await getTheme();
-  return (
-    <Suspense fallback={<Loading theme={theme} label="apro la ricetta…" />}>
-      <Recipe params={params} theme={theme} />
-    </Suspense>
-  );
-}
-
-async function Recipe({ params, theme }: { params: Promise<{ id: string }>; theme: Theme }) {
+async function Recipe({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const recipeId = Number(id);
   if (!Number.isInteger(recipeId)) notFound();
@@ -46,12 +32,5 @@ async function Recipe({ params, theme }: { params: Promise<{ id: string }>; them
       </p>
     );
   }
-  if (theme === "zine") return <ZineRecipe recipe={recipe} library={library} />;
-  return (
-    <>
-      <SiteHeader />
-      <StickerSheet items={library} openId={recipeId} />
-      <AdesiviRecipe recipe={recipe} />
-    </>
-  );
+  return <ZineRecipe recipe={recipe} library={library} />;
 }

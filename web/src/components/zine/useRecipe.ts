@@ -21,12 +21,10 @@ export function modelName(id: string): string {
 }
 
 /**
- * Everything a recipe page does, whatever it looks like: portions, filling in quantities,
- * "a occhio", the AI completion, "l'ho cucinata". Each theme only draws it.
+ * Everything the recipe page does, apart from drawing it: filling in quantities, "a occhio",
+ * the AI completion, the steps as rewritten or as in the reel, "l'ho cucinata".
  */
 export function useRecipe(recipe: RecipeDetail) {
-  // Built for people who live alone: one portion first.
-  const [people, setPeople] = useState(1);
   const [editing, setEditing] = useState(false);
   const [status, setStatus] = useState("");
   const [pending, startTransition] = useTransition();
@@ -111,19 +109,10 @@ export function useRecipe(recipe: RecipeDetail) {
     });
   }
 
-  const base = recipe.servings_estimated ? "stima" : "reel";
-  const forWhom =
-    servings === null
-      ? "il reel non dice per quante persone"
-      : people === servings
-        ? `per ${people}, come ${recipe.servings_estimated ? "da stima" : "nel reel"}`
-        : `per ${people}, dal${base === "reel" ? " reel" : "la stima"} per ${servings}`;
   const steps = asInReel ? recipe.original_steps : recipe.steps;
 
 
   return {
-    people,
-    setPeople,
     editing,
     startEditing,
     status,
@@ -137,7 +126,6 @@ export function useRecipe(recipe: RecipeDetail) {
     missing,
     notice,
     servings,
-    forWhom,
     steps,
     byEye,
     fill,

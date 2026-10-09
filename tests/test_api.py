@@ -145,30 +145,28 @@ def test_the_photo_and_its_files(api, db, media_dir):
     from burp.library import Media
 
     (media_dir / "1" / "inputs").mkdir(parents=True)
-    (media_dir / "1" / "halftone.png").write_bytes(b"png")
+    (media_dir / "1" / "photocopy.png").write_bytes(b"png")
     (media_dir / "1" / "original.jpg").write_bytes(b"jpg")
     (media_dir / "1" / "inputs" / "0.jpg").write_bytes(b"private")
     (media_dir.parent / "secret.txt").write_text("no")
     with Library(db) as lib:
         lib.set_media(
             1,
-            Media(
-                "1/original.jpg", "1/halftone.png", "frame", 0.8, "Gnocchi", "giulia", "https://x"
-            ),
+            Media("1/original.jpg", "frame", 0.8, "Gnocchi", "giulia", "https://x"),
         )
+        lib.set_zine_media(1, photocopy="1/photocopy.png")
 
     photo = api.get("/api/recipes/1").json()["photo"]
     assert photo == {
-        "src": "/api/media/1/halftone.png",
         "original_src": "/api/media/1/original.jpg",
         "alt": "Gnocchi",
         "source": "frame",
         "creator": "giulia",
         "source_url": "https://x",
-        "photocopy_src": None,
+        "photocopy_src": "/api/media/1/photocopy.png",
         "cutout_src": None,
     }
-    response = api.get(photo["src"])
+    response = api.get(photo["photocopy_src"])
     assert response.status_code == 200 and response.content == b"png"
     # Only the photos are served: not what the user sent, not anything outside the folder.
     assert api.get("/api/media/1/inputs/0.jpg").status_code == 404

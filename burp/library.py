@@ -104,6 +104,10 @@ MIGRATIONS = [
         updated_at TEXT NOT NULL
     );
     """,
+    # The Adesivi theme and its halftone print are gone (git tag tema-adesivi).
+    """
+    ALTER TABLE media DROP COLUMN halftone;
+    """,
 ]
 
 
@@ -112,7 +116,6 @@ class Media:
     """The dish photo of a recipe. Paths are relative to the media directory."""
 
     original: str
-    halftone: str
     source: str  # "frame" (a video the user sent), "screenshot", or "reel" (the post's video)
     confidence: float
     alt: str
@@ -344,12 +347,11 @@ class Library:
     def set_media(self, recipe_id: int, media: Media) -> None:
         with self.conn:
             self.conn.execute(
-                "INSERT OR REPLACE INTO media (recipe_id, original, halftone, source, confidence,"
-                " alt, creator, source_url, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT OR REPLACE INTO media (recipe_id, original, source, confidence,"
+                " alt, creator, source_url, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     recipe_id,
                     media.original,
-                    media.halftone,
                     media.source,
                     media.confidence,
                     media.alt,
@@ -424,7 +426,7 @@ class Library:
 
     def media(self, recipe_id: int) -> Media | None:
         row = self.conn.execute(
-            "SELECT original, halftone, source, confidence, alt, creator, source_url, photocopy,"
+            "SELECT original, source, confidence, alt, creator, source_url, photocopy,"
             " cutout FROM media WHERE recipe_id = ?",
             (recipe_id,),
         ).fetchone()
