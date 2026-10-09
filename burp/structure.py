@@ -13,7 +13,7 @@ import anthropic
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from burp.catalog import SynonymIndex, normalize_name, stricter_than
-from burp.config import FAST_OUTPUT
+from burp.config import FAST_MAX_TOKENS, FAST_OUTPUT
 from burp.models import Completeness, CuisineWord, Recipe, RecipeIngredient, Tags
 
 log = logging.getLogger(__name__)
@@ -138,7 +138,7 @@ def split_title(title: str, client: anthropic.Anthropic, model: str) -> TitleSpl
     """Split an existing title for the recipe page (recipes saved before the split existed)."""
     response = client.messages.parse(
         model=model,
-        max_tokens=1000,
+        max_tokens=FAST_MAX_TOKENS,
         system="Dividi il titolo di una ricetta in italiano secondo questa regola:\n"
         + TITLE_PROMPT,
         messages=[{"role": "user", "content": f"Titolo: {title}"}],
@@ -178,7 +178,7 @@ def cuisine_word(recipe: Recipe, client: anthropic.Anthropic, model: str) -> Cui
     facts = f"Titolo: {recipe.title}\nCucina: {recipe.tags.cuisine or 'non nota'}"
     response = client.messages.parse(
         model=model,
-        max_tokens=500,
+        max_tokens=FAST_MAX_TOKENS,
         system=f"Rispondi per questa ricetta secondo la regola:\n{WORD_PROMPT}",
         messages=[{"role": "user", "content": facts}],
         output_format=WordAnswer,

@@ -12,7 +12,7 @@ from typing import Protocol
 import anthropic
 from pydantic import BaseModel, ConfigDict, Field
 
-from burp.config import FAST_OUTPUT
+from burp.config import FAST_MAX_TOKENS, FAST_OUTPUT
 from burp.models import Enrichment, Estimate, ImportedRecipe
 from burp.view import ingredient_views
 
@@ -97,7 +97,7 @@ class ClaudeFiller:
         imported = imported.without_enrichment()  # a new estimate starts from the post
         response = self.client.messages.parse(
             model=self.model,
-            max_tokens=4000,
+            max_tokens=2 * FAST_MAX_TOKENS,  # rewritten steps can be long
             system=SYSTEM,
             messages=[{"role": "user", "content": describe(imported)}],
             output_format=Fill,

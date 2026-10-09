@@ -29,7 +29,7 @@ from PIL import Image
 from pydantic import BaseModel, ConfigDict, Field
 
 from burp.catalog import normalize_name
-from burp.config import FAST_OUTPUT
+from burp.config import FAST_MAX_TOKENS, FAST_OUTPUT
 from burp.cutout import BackgroundRemover, make_cutout
 
 log = logging.getLogger(__name__)
@@ -205,7 +205,7 @@ class ClaudePlanner:
     def plan(self, names: list[str]) -> dict[str, Plan]:
         response = self.client.messages.parse(
             model=self.model,
-            max_tokens=2000,
+            max_tokens=2 * FAST_MAX_TOKENS,  # one plan for every ingredient of a recipe
             system=PLAN_PROMPT,
             messages=[{"role": "user", "content": "\n".join(f"- {n}" for n in names)}],
             output_format=Plans,
@@ -227,7 +227,7 @@ class ClaudeChooser:
         content.append({"type": "text", "text": CHOICE_PROMPT.format(name=name)})
         response = self.client.messages.parse(
             model=self.model,
-            max_tokens=500,
+            max_tokens=FAST_MAX_TOKENS,
             messages=[{"role": "user", "content": content}],
             output_format=Choice,
             output_config=FAST_OUTPUT,

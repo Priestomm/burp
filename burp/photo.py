@@ -25,6 +25,7 @@ import anthropic
 from PIL import Image
 from pydantic import BaseModel, ConfigDict, Field
 
+from burp.config import FAST_MAX_TOKENS
 from burp.frames import extract_frames, tail_weighted
 from burp.library import Media
 
@@ -73,7 +74,7 @@ class ClaudeFramePicker:
         content.append({"type": "text", "text": PICK_PROMPT})
         response = self.client.messages.parse(
             model=self.model,
-            max_tokens=1000,
+            max_tokens=2 * FAST_MAX_TOKENS,  # medium effort thinks more
             messages=[{"role": "user", "content": content}],
             output_format=Pick,
             # A matter of taste among ten pictures: worth a little more thought than low.

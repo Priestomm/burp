@@ -11,6 +11,9 @@ DEFAULT_MODEL = "claude-sonnet-5-5"
 DEFAULT_FAST_MODEL = "claude-haiku-5-5"
 # Those jobs need little reasoning; Haiku 5.5 would otherwise think at "medium".
 FAST_OUTPUT = {"effort": "low"}
+# Haiku 5.5 always thinks before answering, and the thinking counts against max_tokens: a tight
+# limit cuts the JSON answer in half. Only the tokens used are billed, so leave room.
+FAST_MAX_TOKENS = 4000
 DEFAULT_DB_PATH = ROOT_DIR / "data" / "burp.db"
 DEFAULT_MEDIA_DIR = ROOT_DIR / "data" / "media"
 
